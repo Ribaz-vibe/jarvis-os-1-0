@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 
-const USER_ID = '00000000-0000-0000-0000-000000000000';
+// USER_ID is now dynamic
 
 interface UserStats {
   strength: number;
@@ -47,8 +47,11 @@ interface UserState {
   config: UserConfig;
   isLoading: boolean;
   
+  userId: string;
+  setUserId: (id: string) => void;
+  
   // Actions
-  initialize: () => Promise<void>;
+  initialize: (uid?: string) => Promise<void>;
   updateConfig: (config: Partial<UserConfig>) => Promise<void>;
   addXp: (amount: number) => Promise<void>;
   updateStats: (newStats: Partial<UserStats>) => Promise<void>;
@@ -86,20 +89,26 @@ export const useUserStore = create<UserState>((set, get) => ({
   habits: [],
   workoutLogs: [],
   isLoading: true,
+  userId: '00000000-0000-0000-0000-000000000000', // default fallback
 
-  initialize: async () => {
+  setUserId: (id: string) => set({ userId: id }),
+
+  initialize: async (uid?: string) => {
     set({ isLoading: true });
     try {
+      const currentUserId = uid || get().userId;
+      if (uid) set({ userId: uid });
+
       // 1. Fetch User Base Data
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', USER_ID)
+        .eq('id', currentUserId)
         .single();
 
       if (user) {
         set({
-          name: user.name,
+          name: user.name || 'Comandante',
           level: user.level,
           xp: user.xp,
           maxXp: user.max_xp,
@@ -107,13 +116,25 @@ export const useUserStore = create<UserState>((set, get) => ({
           stats: user.stats,
           config: user.config,
         });
+      } else {
+        // Create new user if not exists
+        await supabase.from('users').insert([{
+          id: currentUserId,
+          name: 'Comandante',
+          level: 1,
+          xp: 0,
+          max_xp: 1000,
+          streak: 0,
+          stats: get().stats,
+          config: get().config
+        }]);
+        // State is already at default level 1, 0 xp.
       }
 
-      // 2. Fetch Habits
       const { data: habits } = await supabase
         .from('habits')
         .select('*')
-        .eq('user_id', USER_ID);
+        .eq('user_id', currentUserId);
       
       if (habits) {
         set({ habits: habits.map(h => ({
@@ -126,11 +147,10 @@ export const useUserStore = create<UserState>((set, get) => ({
         }))});
       }
 
-      // 3. Fetch Workouts
       const { data: workouts } = await supabase
         .from('workouts')
         .select('*')
-        .eq('user_id', USER_ID);
+        .eq('user_id', currentUserId);
       
       if (workouts) {
         set({ workoutLogs: workouts.map(w => ({
@@ -152,7 +172,7 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   updateConfig: async (newConfig) => {
     set((state) => ({ config: { ...state.config, ...newConfig } }));
-    await supabase.from('users').update({ config: get().config }).eq('id', USER_ID);
+    await supabase.from('users').update({ config: get().config }).eq('id', get().userId);
   },
 
   addXp: async (amount) => {
@@ -174,17 +194,17 @@ export const useUserStore = create<UserState>((set, get) => ({
       xp: state.xp, 
       level: state.level, 
       max_xp: state.maxXp 
-    }).eq('id', USER_ID);
+    }).eq('id', state.userId);
   },
 
   updateStats: async (newStats) => {
     set((state) => ({ stats: { ...state.stats, ...newStats } }));
-    await supabase.from('users').update({ stats: get().stats }).eq('id', USER_ID);
+    await supabase.from('users').update({ stats: get().stats }).eq('id', get().userId);
   },
 
   incrementStreak: async () => {
     set((state) => ({ streak: state.streak + 1 }));
-    await supabase.from('users').update({ streak: get().streak }).eq('id', USER_ID);
+    await supabase.from('users').update({ streak: get().streak }).eq('id', get().userId);
   },
 
   toggleHabit: async (id) => {
@@ -217,7 +237,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     const { data, error } = await supabase
       .from('habits')
       .insert([{
-        user_id: USER_ID,
+        user_id: get().userId,
         title: habit.title,
         category: habit.category,
         xp_reward: habit.xpReward,
@@ -264,7 +284,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     const { data, error } = await supabase
       .from('workouts')
       .insert([{
-        user_id: USER_ID,
+        user_id: get().userId,
         quest_id: log.questId,
         series: log.series,
         repetitions: log.reps,

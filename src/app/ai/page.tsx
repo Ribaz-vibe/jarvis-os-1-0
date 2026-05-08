@@ -22,6 +22,14 @@ export default function AgenteIAPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('meta-llama/llama-3.2-3b-instruct:free');
+
+  const models = [
+    { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2 3B (Free)' },
+    { id: 'google/gemini-pro', name: 'Gemini Pro' },
+    { id: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku' },
+    { id: 'mistralai/mixtral-8x7b-instruct', name: 'Mixtral 8x7B' },
+  ];
 
   useEffect(() => {
     const fetchMemory = async () => {
@@ -84,7 +92,7 @@ export default function AgenteIAPage() {
         body: JSON.stringify({
           message: input,
           history: historyForApi,
-          apiKey: config.geminiApiKey
+          model: selectedModel,
         })
       });
 
@@ -139,10 +147,15 @@ export default function AgenteIAPage() {
         </div>
         
         <div className="hidden md:flex gap-2">
-          <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-400 flex items-center gap-2">
-            <Zap size={12} className="text-primary" />
-            Model: Gemini 3.1 Pro
-          </div>
+          <select 
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-slate-400 flex items-center gap-2 outline-none focus:border-primary/50"
+          >
+            {models.map(m => (
+              <option key={m.id} value={m.id} className="bg-slate-900">{m.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 

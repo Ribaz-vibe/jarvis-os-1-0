@@ -31,14 +31,19 @@ import {
 export default function AnalyticsPage() {
   const { xp, level, streak, stats } = useUserStore();
 
+  // Basic simulation of history based on current total XP 
+  // (In a full app, this would query an xp_history table)
+  const base = Math.max(0, xp - 300);
+  const completedHabitsToday = useUserStore.getState().habits.filter(h => h.completedToday).length;
+
   const weeklyData = [
-    { name: 'Seg', xp: 120, habits: 3 },
-    { name: 'Ter', xp: 250, habits: 5 },
-    { name: 'Qua', xp: 180, habits: 4 },
-    { name: 'Qui', xp: 300, habits: 6 },
-    { name: 'Sex', xp: 150, habits: 3 },
-    { name: 'Sáb', xp: 400, habits: 7 },
-    { name: 'Dom', xp: Math.max(100, xp), habits: 5 },
+    { name: 'Seg', xp: base + 50, habits: 3 },
+    { name: 'Ter', xp: base + 100, habits: 5 },
+    { name: 'Qua', xp: base + 150, habits: 4 },
+    { name: 'Qui', xp: base + 200, habits: 6 },
+    { name: 'Sex', xp: base + 220, habits: 3 },
+    { name: 'Sáb', xp: base + 280, habits: 7 },
+    { name: 'Hoje', xp: xp, habits: completedHabitsToday },
   ];
 
   const radarData = [

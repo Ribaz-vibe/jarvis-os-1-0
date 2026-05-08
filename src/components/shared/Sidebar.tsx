@@ -12,8 +12,10 @@ import {
   MessageSquare, 
   BarChart3, 
   Settings,
-  Zap
+  Zap,
+  LogOut
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -65,14 +67,25 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      <div className="p-4 border-t border-white/5">
+      <div className="p-4 border-t border-white/5 space-y-2">
         <Link
           href="/settings"
-          className="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+          className="flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group"
         >
-          <Settings size={22} />
+          <Settings size={22} className="group-hover:rotate-90 transition-transform" />
           <span className="hidden md:block font-medium">Configurações</span>
         </Link>
+        <button
+          onClick={() => {
+            localStorage.removeItem('jarvis_guest_mode');
+            supabase.auth.signOut();
+            window.location.href = '/login';
+          }}
+          className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all group"
+        >
+          <LogOut size={22} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="hidden md:block font-medium">Sair</span>
+        </button>
       </div>
     </aside>
   );

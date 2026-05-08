@@ -24,9 +24,39 @@ export default function TreinoPage() {
   const { stats, addWorkoutLog, addXp, workoutLogs } = useUserStore();
   const [activeQuest, setActiveQuest] = useState<any>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [series, setSeries] = useState(3);
-  const [reps, setReps] = useState(10);
-  const [weight, setWeight] = useState(0);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
+  
+  // Multiple exercises state
+  const [exercises, setExercises] = useState([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]);
+  
+  // Manual quest form state
+  const [manualForm, setManualForm] = useState({
+    title: '',
+    muscles: [] as string[],
+    duration: 30,
+    difficulty: 'Intermediário',
+    xp: 50
+  });
+  
+// AI Chat state
+  const [aiChat, setAiChat] = useState<{role: string, content: string}[]>([{
+    role: 'assistant', 
+    content: 'Olá! Sou seu inúmer pessoais. Para criar sua missão, me diga: Qual seu objetivo (hipertrofia, emagrecimento, etc), seu nível atual, peso e altura?'
+  }]);
+  const [aiInput, setAiInput] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const musclesList = ['Peito', 'Costas', 'Ombros', 'Bíceps', 'Tríceps', 'Pernas', 'Glúteos', 'Abdômen', 'Trapézio', 'Panturrilhas', 'Antebraço', 'Cardio'];
+  
+  const toggleMuscle = (muscle: string) => {
+    setManualForm(prev => ({
+      ...prev,
+      muscles: prev.muscles.includes(muscle) 
+        ? prev.muscles.filter(m => m !== muscle)
+        : [...prev.muscles, muscle]
+    }));
+  };
 
   const quests = [
     {
@@ -87,9 +117,19 @@ export default function TreinoPage() {
             <History size={18} />
             <span className="font-bold text-sm">Histórico</span>
           </button>
-          <button className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary px-5 py-3 rounded-xl border border-primary/30 transition-all">
+          <button 
+            onClick={() => setShowAiModal(true)}
+            className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary px-5 py-3 rounded-xl border border-primary/30 transition-all"
+          >
             <Target size={18} />
-            <span className="font-bold text-sm">Criar Missão</span>
+            <span className="font-bold text-sm">Criar Missão com IA</span>
+          </button>
+          <button 
+            onClick={() => setShowManualModal(true)}
+            className="flex items-center gap-2 bg-accent/20 hover:bg-accent/30 text-accent px-5 py-3 rounded-xl border border-accent/30 transition-all"
+          >
+            <Plus size={18} />
+            <span className="font-bold text-sm">Criar Missão Manual</span>
           </button>
         </div>
       </div>
@@ -258,47 +298,62 @@ export default function TreinoPage() {
                 <h3 className="text-2xl font-black mb-2 pr-8">{activeQuest.title}</h3>
                 <p className="text-slate-400 text-sm mb-6">Registre seu progresso para ganhar <span className="text-primary font-bold">+{activeQuest.xp} XP</span></p>
 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-400">Séries</label>
-                      <input 
-                        type="number" 
-                        value={series} 
-                        onChange={(e) => setSeries(Number(e.target.value))}
-                        className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                        min="1"
-                      />
+                <div className="space-y-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                  {exercises.map((ex, index) => (
+                    <div key={index} className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <input 
+                          type="text" 
+                          value={ex.name}
+                          onChange={(e) => {
+                            const newEx = [...exercises];
+                            newEx[index].name = e.target.value;
+                            setExercises(newEx);
+                          }}
+                          className="bg-transparent border-b border-white/20 text-white font-bold focus:outline-none focus:border-primary w-2/3"
+                          placeholder="Nome do Exercício"
+                        />
+                        {exercises.length > 1 && (
+                          <button onClick={() => setExercises(exercises.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400">
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-slate-400">Séries</label>
+                          <input type="number" value={ex.series} onChange={(e) => { const newEx = [...exercises]; newEx[index].series = Number(e.target.value); setExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50 text-sm" min="1"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-slate-400">Reps</label>
+                          <input type="number" value={ex.reps} onChange={(e) => { const newEx = [...exercises]; newEx[index].reps = Number(e.target.value); setExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50 text-sm" min="1"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-slate-400">Carga (kg)</label>
+                          <input type="number" value={ex.weight} onChange={(e) => { const newEx = [...exercises]; newEx[index].weight = Number(e.target.value); setExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50 text-sm" min="0"/>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-400">Repetições</label>
-                      <input 
-                        type="number" 
-                        value={reps} 
-                        onChange={(e) => setReps(Number(e.target.value))}
-                        className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                        min="1"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-400">Carga (kg)</label>
-                    <input 
-                      type="number" 
-                      value={weight} 
-                      onChange={(e) => setWeight(Number(e.target.value))}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                      min="0"
-                    />
-                  </div>
+                  ))}
+                  
+                  <button 
+                    onClick={() => setExercises([...exercises, { name: `Exercício ${exercises.length + 1}`, series: 3, reps: 10, weight: 0 }])}
+                    className="w-full py-3 border border-dashed border-white/20 rounded-xl text-slate-400 hover:text-white hover:border-white/50 transition-colors flex justify-center items-center gap-2 text-sm font-bold"
+                  >
+                    <Plus size={16} /> Adicionar Exercício
+                  </button>
                 </div>
 
                 <div className="mt-8">
                   <button 
                     onClick={() => {
-                      addWorkoutLog({ questId: activeQuest.id, series, reps, weight });
+                      // Save each exercise as a log (temporary fix until DB schema update)
+                      exercises.forEach(ex => {
+                        addWorkoutLog({ questId: activeQuest.id, series: ex.series, reps: ex.reps, weight: ex.weight });
+                      });
                       addXp(activeQuest.xp);
                       setActiveQuest(null);
+                      setExercises([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]); // reset
                     }}
                     className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"
                   >
@@ -306,6 +361,196 @@ export default function TreinoPage() {
                     Registrar Missão e Ganhar XP
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Consultoria Modal */}
+      <AnimatePresence>
+        {showAiModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-primary/30 rounded-2xl shadow-[0_0_50px_rgba(99,102,241,0.15)] w-full max-w-2xl overflow-hidden relative flex flex-col h-[80vh]"
+            >
+              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                    <Target size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg">Consultoria IA</h3>
+                    <p className="text-xs text-slate-400">Gerador de Missões Físicas</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowAiModal(false)} className="text-slate-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-slate-950/50">
+                {aiChat.map((msg, i) => (
+                  <div key={i} className={cn("flex gap-3", msg.role === 'user' ? "flex-row-reverse" : "")}>
+                    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1", msg.role === 'user' ? "bg-slate-800" : "bg-primary/20 text-primary")}>
+                      {msg.role === 'user' ? <div className="text-xs font-bold">C</div> : <Activity size={14} />}
+                    </div>
+                    <div className={cn("p-3 rounded-2xl max-w-[80%] text-sm leading-relaxed", msg.role === 'user' ? "bg-slate-800 rounded-tr-none text-white" : "glass-card border border-primary/20 rounded-tl-none text-slate-200")}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                {aiLoading && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center"><Activity size={14} /></div>
+                    <div className="p-3 rounded-2xl glass-card border border-primary/20 rounded-tl-none flex gap-1">
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-white/10 bg-black/20">
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={aiInput}
+                    onChange={(e) => setAiInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        // Fake AI flow for now
+                        if (!aiInput.trim()) return;
+                        setAiChat(prev => [...prev, { role: 'user', content: aiInput }]);
+                        setAiInput('');
+                        setAiLoading(true);
+                        setTimeout(() => {
+                          setAiLoading(false);
+                          setAiChat(prev => [...prev, { role: 'assistant', content: 'Excelente. Com base nisso, criei uma nova missão chamada "Foco Hipertrófico". Ela foi adicionada ao seu quadro de missões. Pronto para começar?' }]);
+                        }, 1500);
+                      }
+                    }}
+                    placeholder="Ex: 80kg, 1.75m, quero ganhar massa..."
+                    className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50"
+                  />
+                  <button className="px-6 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-colors">
+                    Enviar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Manual Create Mission Modal */}
+      <AnimatePresence>
+        {showManualModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-accent/30 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.15)] w-full max-w-lg overflow-hidden relative flex flex-col max-h-[85vh]"
+            >
+              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+                    <Plus size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg">Criar Missão Manual</h3>
+                    <p className="text-xs text-slate-400">Monte seu próprio treino</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowManualModal(false)} className="text-slate-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-400">Nome do Treino</label>
+                  <input 
+                    type="text" 
+                    value={manualForm.title}
+                    onChange={(e) => setManualForm({...manualForm, title: e.target.value})}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent/50 font-bold"
+                    placeholder="Ex: Treino de Peito"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-400">Grupos Musculares</label>
+                  <div className="flex flex-wrap gap-2">
+                    {musclesList.map(muscle => (
+                      <button
+                        key={muscle}
+                        onClick={() => toggleMuscle(muscle)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-sm font-medium transition-all",
+                          manualForm.muscles.includes(muscle) ? "bg-accent text-white" : "bg-white/5 text-slate-400 hover:bg-white/10"
+                        )}
+                      >
+                        {muscle}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-400">Duração (min)</label>
+                    <input type="number" value={manualForm.duration} onChange={(e) => setManualForm({...manualForm, duration: Number(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white" min="10" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-400">XP Recompensa</label>
+                    <input type="number" value={manualForm.xp} onChange={(e) => setManualForm({...manualForm, xp: Number(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white" min="10" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-400">Dificuldade</label>
+                  <select value={manualForm.difficulty} onChange={(e) => setManualForm({...manualForm, difficulty: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white">
+                    <option value="Iniciante">Iniciante</option>
+                    <option value="Intermediário">Intermediário</option>
+                    <option value="Avançado">Avançado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-white/10 bg-black/20">
+                <button 
+                  onClick={() => {
+                    if (!manualForm.title.trim() || manualForm.muscles.length === 0) {
+                      alert('Preencha o nome e selecione pelo menos um músculo.');
+                      return;
+                    }
+                    const newExercises = manualForm.muscles.map(m => ({ name: m, series: 3, reps: 10, weight: 0 }));
+                    setExercises(newExercises);
+                    setActiveQuest({
+                      id: Date.now(),
+                      title: manualForm.title,
+                      type: manualForm.muscles.join(', '),
+                      difficulty: manualForm.difficulty,
+                      xp: manualForm.xp,
+                      duration: `${manualForm.duration} min`,
+                      status: 'available',
+                      muscles: manualForm.muscles,
+                      image: "bg-gradient-to-br from-accent/20 to-purple-500/5",
+                      color: "text-accent",
+                      border: "border-accent/30"
+                    });
+                    setShowManualModal(false);
+                  }}
+                  className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-4 rounded-xl"
+                >
+                  Criar e Iniciar
+                </button>
               </div>
             </motion.div>
           </div>
