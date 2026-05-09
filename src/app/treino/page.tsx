@@ -22,7 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function TreinoPage() {
-  const { stats, addWorkoutLog, addXp, workoutLogs } = useUserStore();
+  const { stats, addWorkoutLog, addXp, workoutLogs, xpToday } = useUserStore();
   const [activeQuest, setActiveQuest] = useState<any>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
@@ -173,8 +173,8 @@ export default function TreinoPage() {
              <div className="flex items-center gap-4">
                 <TrendingUp size={32} className="text-primary" />
                 <div>
-                  <div className="text-2xl font-black neon-text-purple">+0 XP</div>
-                  <div className="text-sm text-slate-400 font-bold uppercase tracking-widest">Ganho Físico</div>
+                  <div className="text-2xl font-black neon-text-purple">+{xpToday} XP</div>
+                  <div className="text-sm text-slate-400 font-bold uppercase tracking-widest">Ganho de Hoje</div>
                 </div>
               </div>
           </DashboardCard>
@@ -300,65 +300,44 @@ export default function TreinoPage() {
 
                 <div className="space-y-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                   {exercises.map((ex, index) => (
-                    <div key={index} className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <input 
-                          type="text" 
-                          value={ex.name}
-                          onChange={(e) => {
-                            const newEx = [...exercises];
-                            newEx[index].name = e.target.value;
-                            setExercises(newEx);
-                          }}
-                          className="bg-transparent border-b border-white/20 text-white font-bold focus:outline-none focus:border-primary w-2/3"
-                          placeholder="Nome do Exercício"
-                        />
-                        {exercises.length > 1 && (
-                          <button onClick={() => setExercises(exercises.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400">
-                            <X size={16} />
-                          </button>
-                        )}
+                    <div key={index} className="p-4 bg-black/30 rounded-xl border border-white/5">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-white font-bold">{ex.name}</span>
+                        <span className="text-xs text-slate-500">Exercício {index + 1}</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-400">Séries</label>
-                          <input type="number" value={ex.series} onChange={(e) => { const newEx = [...exercises]; newEx[index].series = Number(e.target.value); setExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50 text-sm" min="1"/>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-white/5 rounded-lg py-2">
+                          <div className="text-xs font-bold text-slate-400 uppercase">Séries</div>
+                          <div className="text-white font-black">{ex.series}</div>
                         </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-400">Reps</label>
-                          <input type="number" value={ex.reps} onChange={(e) => { const newEx = [...exercises]; newEx[index].reps = Number(e.target.value); setExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50 text-sm" min="1"/>
+                        <div className="bg-white/5 rounded-lg py-2">
+                          <div className="text-xs font-bold text-slate-400 uppercase">Reps</div>
+                          <div className="text-white font-black">{ex.reps}</div>
                         </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-400">Carga (kg)</label>
-                          <input type="number" value={ex.weight} onChange={(e) => { const newEx = [...exercises]; newEx[index].weight = Number(e.target.value); setExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50 text-sm" min="0"/>
+                        <div className="bg-white/5 rounded-lg py-2">
+                          <div className="text-xs font-bold text-slate-400 uppercase">Peso</div>
+                          <div className="text-white font-black">{ex.weight}kg</div>
                         </div>
                       </div>
                     </div>
                   ))}
-                  
-                  <button 
-                    onClick={() => setExercises([...exercises, { name: `Exercício ${exercises.length + 1}`, series: 3, reps: 10, weight: 0 }])}
-                    className="w-full py-3 border border-dashed border-white/20 rounded-xl text-slate-400 hover:text-white hover:border-white/50 transition-colors flex justify-center items-center gap-2 text-sm font-bold"
-                  >
-                    <Plus size={16} /> Adicionar Exercício
-                  </button>
                 </div>
 
                 <div className="mt-8">
                   <button 
                     onClick={() => {
-                      // Save each exercise as a log (temporary fix until DB schema update)
                       exercises.forEach(ex => {
                         addWorkoutLog({ questId: activeQuest.id, series: ex.series, reps: ex.reps, weight: ex.weight });
                       });
                       addXp(activeQuest.xp);
+                      setQuests(quests.map(q => q.id === activeQuest.id ? { ...q, status: 'completed' } : q));
                       setActiveQuest(null);
-                      setExercises([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]); // reset
+                      setExercises([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]);
                     }}
                     className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"
                   >
-                    <Plus size={20} />
-                    Registrar Missão e Ganhar XP
+                    <Play size={20} className="ml-1" />
+                    Finalizar Missão e Ganhar XP
                   </button>
                 </div>
               </div>

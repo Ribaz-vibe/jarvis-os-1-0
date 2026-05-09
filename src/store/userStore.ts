@@ -43,6 +43,7 @@ interface UserState {
   xp: number;
   maxXp: number;
   streak: number;
+  xpToday: number;
   stats: UserStats;
   config: UserConfig;
   isLoading: boolean;
@@ -74,6 +75,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   xp: 0,
   maxXp: 0,
   streak: 0,
+  xpToday: 0,
   stats: {
     strength: 0,
     discipline: 0,
@@ -103,6 +105,7 @@ initialize: async (uid?: string) => {
         xp: 0,
         maxXp: 0,
         streak: 0,
+        xpToday: 0,
         stats: {
           strength: 0,
           discipline: 0,
@@ -141,7 +144,7 @@ initialize: async (uid?: string) => {
         newXp = newXp - state.maxXp;
         newMaxXp = Math.floor(state.maxXp * 1.2);
       }
-      return { xp: newXp, level: newLevel, maxXp: newMaxXp };
+      return { xp: newXp, level: newLevel, maxXp: newMaxXp, xpToday: state.xpToday + amount };
     });
     
     const state = get();
