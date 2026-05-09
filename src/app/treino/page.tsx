@@ -24,20 +24,18 @@ import { cn } from '@/lib/utils';
 export default function TreinoPage() {
   const { stats, addWorkoutLog, addXp, workoutLogs, xpToday } = useUserStore();
   const [activeQuest, setActiveQuest] = useState<any>(null);
-  const [showHistory, setShowHistory] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
   
   // Missões do usuário (armazenadas localmente)
   const [quests, setQuests] = useState<any[]>([]);
   
-  // Multiple exercises state
-  const [exercises, setExercises] = useState<any[]>([]);
-  
-  // Exercises in manual form
-  const [manualExercises, setManualExercises] = useState<{name: string, series: number, reps: number, weight: number}[]>([
-    { name: '', series: 3, reps: 10, weight: 0 }
-  ]);
+  // Histórico de treinos realizados
+  const [workoutHistory, setWorkoutHistory] = useState<{id: number, questId: number, title: string, xp: number, date: string}[]>([]);
+
+  const addToHistory = (entry: { questId: number, title: string, xp: number, date: string }) => {
+    setWorkoutHistory(prev => [{ id: Date.now(), ...entry }, ...prev]);
+  };
 
   // Load from localStorage
   useEffect(() => {
@@ -45,12 +43,28 @@ export default function TreinoPage() {
     if (savedMissions) {
       setQuests(JSON.parse(savedMissions));
     }
+    const savedHistory = localStorage.getItem('jarvis_workout_history');
+    if (savedHistory) {
+      setWorkoutHistory(JSON.parse(savedHistory));
+    }
   }, []);
 
   // Save to localStorage
   useEffect(() => {
     localStorage.setItem('jarvis_missions', JSON.stringify(quests));
   }, [quests]);
+
+  useEffect(() => {
+    localStorage.setItem('jarvis_workout_history', JSON.stringify(workoutHistory));
+  }, [workoutHistory]);
+  
+// Multiple exercises state
+  const [exercises, setExercises] = useState<any[]>([]);
+  
+  // Exercises in manual form
+  const [manualExercises, setManualExercises] = useState<{name: string, series: number, reps: number, weight: number}[]>([
+    { name: '', series: 3, reps: 10, weight: 0 }
+  ]);
 
   // Load exercises when activeQuest is set
   useEffect(() => {
@@ -102,13 +116,6 @@ export default function TreinoPage() {
         </div>
         
         <div className="flex gap-3">
-          <button 
-            onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-5 py-3 rounded-xl border border-white/10 transition-all"
-          >
-            <History size={18} />
-            <span className="font-bold text-sm">Histórico</span>
-          </button>
           <button 
             onClick={() => setShowAiModal(true)}
             className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary px-5 py-3 rounded-xl border border-primary/30 transition-all"
@@ -181,47 +188,22 @@ export default function TreinoPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          {showHistory && (
-            <DashboardCard title="Histórico de Treinos">
-              {workoutLogs.length === 0 ? (
-                <div className="text-center text-slate-400 py-8">Nenhum treino registrado ainda.</div>
-              ) : (
-                <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                  {workoutLogs.map((log) => {
-                    const quest = quests.find(q => q.id === log.questId);
-                    return (
-                      <div key={log.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-                        <div>
-                          <div className="font-bold text-white">{quest?.title || 'Treino Customizado'}</div>
-                          <div className="text-sm text-slate-400">{new Date(log.date).toLocaleDateString()} • {log.series}x{log.reps} {log.weight > 0 ? `(${log.weight}kg)` : ''}</div>
-                        </div>
-                        <div className="text-primary font-bold">+{quest?.xp || 0} XP</div>
-                      </div>
-                    )
-                  }).reverse()}
-                </div>
-              )}
-            </DashboardCard>
-          )}
-
           <DashboardCard title="Missões Ativas" className="h-full">
             <div className="space-y-4">
-              {quests.filter(q => q.status === 'available').length === 0 ? (
+              {quests.length === 0 && (
                 <div className="text-center py-8 text-slate-500">
                   <p className="text-sm">Nenhuma missão ativa</p>
                   <p className="text-xs text-slate-600 mt-1">Crie uma nova missão para começar</p>
                 </div>
-              ) : (
-                quests.filter(q => q.status === 'available').map((quest, i) => (
+              )}
+              {quests.map((quest, i) => (
                 <motion.div
+                  key={quest.id}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  key={quest.id}
                   className={cn(
-                    "relative overflow-hidden rounded-2xl border p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 group transition-all",
-                    quest.status === 'completed' ? "bg-white/5 border-white/10 opacity-70" : "glass-card hover:border-white/20",
-                    quest.status === 'available' && "border-primary/30"
+                    "relative overflow-hidden rounded-2xl border p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 group transition-all glass-card hover:border-white/20 border-primary/30"
                   )}
                 >
                   <div className={cn("absolute inset-0 opacity-50", quest.image)} />
@@ -231,7 +213,7 @@ export default function TreinoPage() {
                       "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border bg-slate-900/50 backdrop-blur-sm",
                       quest.border, quest.color
                     )}>
-                      {quest.status === 'completed' ? <History size={24} /> : <Activity size={24} />}
+                      <Activity size={24} />
                     </div>
 
                     <div>
@@ -242,11 +224,6 @@ export default function TreinoPage() {
                         )}>
                           {quest.difficulty}
                         </span>
-                        {quest.status === 'completed' && (
-                          <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-green-500/30 text-green-500 bg-slate-900/50">
-                            Concluída
-                          </span>
-                        )}
                       </div>
                       <h3 className="font-black text-xl mb-1">{quest.title}</h3>
                       <p className="text-slate-400 text-sm font-medium">{quest.type} • {quest.duration}</p>
@@ -259,14 +236,12 @@ export default function TreinoPage() {
                       <div className="text-lg font-black text-primary">+{quest.xp} XP</div>
                     </div>
                     
-                    {quest.status === 'available' && (
-                      <button 
-                        onClick={() => setActiveQuest(quest)}
-                        className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white hover:scale-110 transition-transform shadow-[0_0_20px_rgba(99,102,241,0.5)]"
-                      >
-                        <Play size={20} className="ml-1" />
-                      </button>
-                    )}
+                    <button 
+                      onClick={() => setActiveQuest(quest)}
+                      className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white hover:scale-110 transition-transform shadow-[0_0_20px_rgba(99,102,241,0.5)]"
+                    >
+                      <Play size={20} className="ml-1" />
+                    </button>
                     
                     <button 
                       onClick={() => setQuests(quests.filter(q => q.id !== quest.id))}
@@ -277,63 +252,40 @@ export default function TreinoPage() {
                     </button>
                   </div>
                 </motion.div>
-              ))
-              )}
+              ))}
             </div>
           </DashboardCard>
 
-          {quests.filter(q => q.status === 'completed').length > 0 && (
-            <DashboardCard title="Missões Concluídas" className="h-full mt-6">
-              <div className="space-y-4">
-                {quests.filter(q => q.status === 'completed').map((quest, i) => (
+          {workoutHistory.length > 0 && (
+            <DashboardCard title="Histórico de Treinos" className="h-full mt-6">
+              <div className="space-y-3">
+                {workoutHistory.map((entry, i) => (
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    key={quest.id}
-                    className={cn(
-                      "relative overflow-hidden rounded-2xl border p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 group transition-all bg-white/5 border-white/10 opacity-70"
-                    )}
+                    transition={{ delay: i * 0.05 }}
+                    key={entry.id}
+                    className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10"
                   >
-                    <div className={cn("absolute inset-0 opacity-50", quest.image)} />
-                    
-                    <div className="relative z-10 flex items-start gap-4">
-                      <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border bg-slate-900/50 backdrop-blur-sm",
-                        quest.border, quest.color
-                      )}>
-                        <History size={24} />
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                        <Activity size={18} className="text-primary" />
                       </div>
-
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={cn(
-                            "text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border bg-slate-900/50",
-                            quest.border, quest.color
-                          )}>
-                            {quest.difficulty}
-                          </span>
-                          <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-green-500/30 text-green-500 bg-slate-900/50">
-                            Concluída
-                          </span>
+                        <div className="font-bold text-white">{entry.title}</div>
+                        <div className="text-xs text-slate-400">
+                          {new Date(entry.date).toLocaleDateString('pt-BR')} às {new Date(entry.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        <h3 className="font-black text-xl mb-1">{quest.title}</h3>
-                        <p className="text-slate-400 text-sm font-medium">{quest.type} • {quest.duration}</p>
                       </div>
                     </div>
-
-                    <div className="relative z-10 flex items-center gap-4 mt-4 md:mt-0">
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-slate-500 uppercase tracking-widest">Recompensa</div>
-                        <div className="text-lg font-black text-primary">+{quest.xp} XP</div>
-                      </div>
-                      
+                    <div className="flex items-center gap-3">
+                      <div className="text-primary font-bold">+{entry.xp} XP</div>
                       <button 
-                        onClick={() => setQuests(quests.filter(q => q.id !== quest.id))}
-                        className="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-500 hover:bg-red-500/30 transition-all"
-                        title="Excluir missão"
+                        onClick={() => setWorkoutHistory(workoutHistory.filter(h => h.id !== entry.id))}
+                        className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-500 hover:bg-red-500/30 transition-all"
+                        title="Excluir do histórico"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </motion.div>
@@ -397,14 +349,14 @@ export default function TreinoPage() {
                         addWorkoutLog({ questId: activeQuest.id, series: ex.series, reps: ex.reps, weight: ex.weight });
                       });
                       addXp(activeQuest.xp);
-                      setQuests(quests.map(q => q.id === activeQuest.id ? { ...q, status: 'completed' } : q));
+                      addToHistory({ questId: activeQuest.id, title: activeQuest.title, xp: activeQuest.xp, date: new Date().toISOString() });
                       setActiveQuest(null);
                       setExercises([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]);
                     }}
                     className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"
                   >
                     <Play size={20} className="ml-1" />
-                    Finalizar Missão e Ganhar XP
+                    Registrar Treino e Ganhar XP
                   </button>
                 </div>
               </div>
