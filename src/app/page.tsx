@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardCard } from '@/components/shared/DashboardCard';
 import { useUserStore } from '@/store/userStore';
 import { 
@@ -12,13 +12,96 @@ import {
   RotateCcw,
   Plus,
   CheckCircle2,
+  Check,
   ArrowUpRight,
   Bot
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+
+interface Habit {
+  id: string;
+  title: string;
+  category: string;
+  xpReward: number;
+  completedToday: boolean;
+  streak: number;
+}
+
+interface CustomCategory {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
+const defaultCategories: Record<string, { icon: React.ElementType, color: string, bg: string, label: string }> = {
+  health: { icon: Heart, color: 'text-pink-500', bg: 'bg-pink-500/10 border-pink-500/20', label: 'Saúde' },
+  mind: { icon: Brain, color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/20', label: 'Mente' },
+  work: { icon: Focus, color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/20', label: 'Trabalho' },
+  fitness: { icon: Dumbbell, color: 'text-cyan-500', bg: 'bg-cyan-500/10 border-cyan-500/20', label: 'Físico' },
+};
+
+const iconMap: Record<string, React.ElementType> = {
+  Heart, Brain, Focus, Dumbbell
+};
 
 export default function Dashboard() {
-  const { stats, level, habits } = useUserStore();
+  const { stats, level } = useUserStore();
+  
+  // Estado para hábitos do localStorage
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
+
+  // Carregar do localStorage
+  useEffect(() => {
+    const savedHabits = localStorage.getItem('jarvis_habits');
+    if (savedHabits) {
+      setHabits(JSON.parse(savedHabits));
+    }
+    const savedCategories = localStorage.getItem('jarvis_custom_categories');
+    if (savedCategories) {
+      setCustomCategories(JSON.parse(savedCategories));
+    }
+  }, []);
+
+  // Toggle hábito (marcar/desmarcar)
+  const toggleHabit = (id: string) => {
+    setHabits(prev => {
+      const updated = prev.map(h => {
+        if (h.id === id) {
+          return { 
+            ...h, 
+            completedToday: !h.completedToday,
+            streak: !h.completedToday ? h.streak + 1 : Math.max(0, h.streak - 1)
+          };
+        }
+        return h;
+      });
+      localStorage.setItem('jarvis_habits', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Obter config da categoria
+  const getCategoryConfig = (categoryId: string) => {
+    const defaultCat = defaultCategories[categoryId];
+    if (defaultCat) return defaultCat;
+    
+    const customCat = customCategories.find(c => c.id === categoryId);
+    if (customCat) {
+      return {
+        icon: iconMap[customCat.icon] || Heart,
+        color: customCat.color,
+        bg: `bg-[${customCat.color}/10] border-[${customCat.color}/20`,
+        label: customCat.name
+      };
+    }
+    return defaultCategories.health;
+  };
+
+  const completedCount = habits.filter(h => h.completedToday).length;
+  const totalXp = habits.filter(h => h.completedToday).reduce((acc, h) => acc + h.xpReward, 0);
 
   const statConfig = [
     { label: 'Strength', value: stats.strength, icon: Dumbbell, color: 'text-red-500' },
@@ -106,13 +189,60 @@ export default function Dashboard() {
       {/* Right Column - Tasks & Quick Actions */}
       <div className="space-y-8">
         
-{/* Daily Tasks */}
+{/* Daily Tasks - connected to Habits */}
         <DashboardCard title="Tarefas do Dia" delay={0.2} className="h-full">
           <div className="space-y-4">
-            <div className="text-center py-8 text-slate-500">
-              <p className="text-sm">Nenhuma tarefa hoje</p>
-              <p className="text-xs text-slate-600 mt-1">Use Hábitos para criar</p>
-            </div>
+            {habits.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <p className="text-sm">Nenhuma tarefa hoje</p>
+                <p className="text-xs text-slate-600 mt-1">Use Hábitos para criar</p>
+              </div>
+            ) : (
+              habits.map((habit) => {
+                const config = getCategoryConfig(habit.category);
+                const Icon = config.icon;
+                
+                return (
+                  <div 
+                    key={habit.id}
+                    onClick={() => toggleHabit(habit.id)}
+                    className="flex items-center gap-3 group cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-all"
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                      habit.completedToday 
+                        ? "bg-primary border-primary text-white" 
+                        : "border-white/20 group-hover:border-primary"
+                    )}>
+                      {habit.completedToday && <Check size={14} />}
+                    </div>
+                    <div className="flex-1">
+                      <span className={cn(
+                        "text-sm",
+                        habit.completedToday ? "text-slate-500 line-through" : "text-slate-300"
+                      )}>
+                        {habit.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Icon size={14} className={config.color} />
+                      <span className={cn("text-xs font-bold", config.color)}>
+                        +{habit.xpReward} XP
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            
+            {habits.length > 0 && (
+              <div className="pt-4 mt-4 border-t border-white/5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">{completedCount}/{habits.length} completas</span>
+                  <span className="text-primary font-bold">+{totalXp} XP hoje</span>
+                </div>
+              </div>
+            )}
           </div>
         </DashboardCard>
 
@@ -132,11 +262,11 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
               <div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">XP Ganho Hoje</div>
-                <div className="text-xl font-bold text-primary">+0</div>
+                <div className="text-xl font-bold text-primary">+{totalXp}</div>
               </div>
               <div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tarefas Concluídas</div>
-                <div className="text-xl font-bold text-accent">0</div>
+                <div className="text-xl font-bold text-accent">{completedCount}</div>
               </div>
             </div>
           </div>
