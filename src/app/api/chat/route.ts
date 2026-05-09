@@ -1,15 +1,6 @@
 import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 
-const openai = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
-  defaultHeaders: {
-    'HTTP-Referer': 'https://jarvis-os-1-0.vercel.app',
-    'X-OpenRouter-Title': 'Jarvis OS',
-  },
-});
-
 const SYSTEM_PROMPT = `Você é o J.A.R.V.I.S., um assistente pessoal de IA sofisticado e elegante.
 Seu papel é ajudar o "Comandante" (usuário) com:
 - Organização e produtividade
@@ -25,14 +16,23 @@ export async function POST(req: Request) {
   try {
     const { message, history, model } = await req.json();
     
-    // Default model if none provided
-    const selectedModel = model || 'meta-llama/llama-3.2-3b-instruct:free';
+    const apiKey = process.env.OPENROUTER_API_KEY;
     
-    if (!process.env.OPENROUTER_API_KEY) {
+    if (!apiKey) {
       return NextResponse.json({ error: 'API key não configurada no servidor' }, { status: 500 });
     }
 
-    // Format messages for OpenRouter (OpenAI-compatible)
+    const openai = new OpenAI({
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: apiKey,
+      defaultHeaders: {
+        'HTTP-Referer': 'https://jarvis-os-1-0.vercel.app',
+        'X-OpenRouter-Title': 'Jarvis OS',
+      },
+    });
+
+    const selectedModel = model || 'meta-llama/llama-3.2-3b-instruct:free';
+
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
       ...history.map((msg: any) => ({ role: msg.role, content: msg.content })),
