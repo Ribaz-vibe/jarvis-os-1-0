@@ -154,7 +154,7 @@ export default function WorkspacePage() {
                 />
               </div>
               
-              <div className="space-y-2">
+<div className="space-y-2">
                 <label className="text-sm font-bold text-slate-400">Tecnologia/Tipo</label>
                 <input 
                   type="text" 
@@ -165,102 +165,41 @@ export default function WorkspacePage() {
                 />
               </div>
 
-<button 
-          onClick={() => {
-            if (newProject.name.trim()) {
-              setProjects([{
-                name: newProject.name,
-                status: "Planejamento",
-                type: newProject.type || "Outros",
-                icon: Layout,
-                color: "text-primary",
-                progress: 0,
-                description: newProject.description || '',
-                tasks: [],
-                notes: '',
-                images: []
-              }, ...projects]);
-              setShowAddModal(false);
-              setNewProject({ name: '', type: 'Next.js', description: '' });
-            }
-          }}
-          className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primary/90 mt-4"
-        >
-          Adicionar Projeto
-        </button>
+              <button 
+                onClick={() => {
+                  if (newProject.name.trim()) {
+                    setProjects([{
+                      name: newProject.name,
+                      status: "Planejamento",
+                      type: newProject.type || "Outros",
+                      icon: Layout,
+                      color: "text-primary",
+                      progress: 0,
+                      description: newProject.description || '',
+                      tasks: [],
+                      notes: '',
+                      images: []
+                    }, ...projects]);
+                    setShowAddModal(false);
+                    setNewProject({ name: '', type: 'Next.js', description: '' });
+                  }
+                }}
+                className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primary/90 mt-4"
+              >
+                Adicionar Projeto
+              </button>
             </div>
           </motion.div>
         </div>
-      )}
+)}
+      </AnimatePresence>
+    </div>
+  );
+}
 
-    {/* Project Detail Modal - Notion Style */}
-    <AnimatePresence>
-      {selectedProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]"
-          >
-            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
-              <div className="flex items-center gap-3">
-                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", selectedProject.color)}>
-                  <selectedProject.icon size={20} />
-                </div>
-                <div>
-                  <h3 className="font-black text-xl">{selectedProject.name}</h3>
-                  <p className="text-xs text-slate-400">{selectedProject.type} • {selectedProject.status}</p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedProject(null)} className="text-slate-400 hover:text-white">
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-              <div className="mb-8">
-                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Descrição</h4>
-                <textarea
-                  value={selectedProject.description || ''}
-                  onChange={(e) => {
-                    const updated = {...selectedProject, description: e.target.value};
-                    setProjects(projects.map(p => p.name === selectedProject.name ? updated : p));
-                    setSelectedProject(updated);
-                  }}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white resize-none h-24"
-                />
-              </div>
-
-              <div className="mb-8">
-                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Tarefas</h4>
-                <div className="space-y-2 mb-3">
-                  {(selectedProject.tasks || []).map((task: any, i: number) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-black/30 rounded-xl">
-                      <button onClick={() => {
-                        const updated = {...selectedProject, tasks: selectedProject.tasks.map((t: any, idx: number) => idx === i ? {...t, done: !t.done} : t)};
-                        setProjects(projects.map(p => p.name === selectedProject.name ? updated : p));
-                        setSelectedProject(updated);
-                      }}>
-                        {task.done ? <CheckCircle2 size={18} className="text-green-500" /> : <Circle size={18} className="text-slate-500" />}
-                      </button>
-                      <span className={cn("flex-1", task.done && "line-through text-slate-500")}>{task.text}</span>
-                      <button onClick={() => {
-                        const updated = {...selectedProject, tasks: selectedProject.tasks.filter((_: any, idx: number) => idx !== i)};
-                        setProjects(projects.map(p => p.name === selectedProject.name ? updated : p));
-                        setSelectedProject(updated);
-                      }} className="text-slate-500 hover:text-red-500"><Trash2 size={16} /></button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input type="text" value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newTask.trim()) {
-                      const updated = {...selectedProject, tasks: [...(selectedProject.tasks || []), {id: Date.now(), text: newTask, done: false}]};
-                      setProjects(projects.map(p => p.name === selectedProject.name ? updated : p));
-                      setSelectedProject(updated);
-                      setNewTask('');
-                    }
+function Star() {
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>;
+}
                   }} className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2 text-white" placeholder="Nova tarefa..." />
                   <button onClick={() => {
                     if (newTask.trim()) {
