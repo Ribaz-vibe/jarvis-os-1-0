@@ -204,9 +204,15 @@ export default function TreinoPage() {
             </DashboardCard>
           )}
 
-          <DashboardCard title="Quadro de Missões (Treinos)" className="h-full">
+          <DashboardCard title="Missões Ativas" className="h-full">
             <div className="space-y-4">
-              {quests.map((quest, i) => (
+              {quests.filter(q => q.status === 'available').length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <p className="text-sm">Nenhuma missão ativa</p>
+                  <p className="text-xs text-slate-600 mt-1">Crie uma nova missão para começar</p>
+                </div>
+              ) : (
+                quests.filter(q => q.status === 'available').map((quest, i) => (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -271,9 +277,70 @@ export default function TreinoPage() {
                     </button>
                   </div>
                 </motion.div>
-              ))}
+              ))
+              )}
             </div>
           </DashboardCard>
+
+          {quests.filter(q => q.status === 'completed').length > 0 && (
+            <DashboardCard title="Missões Concluídas" className="h-full mt-6">
+              <div className="space-y-4">
+                {quests.filter(q => q.status === 'completed').map((quest, i) => (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    key={quest.id}
+                    className={cn(
+                      "relative overflow-hidden rounded-2xl border p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 group transition-all bg-white/5 border-white/10 opacity-70"
+                    )}
+                  >
+                    <div className={cn("absolute inset-0 opacity-50", quest.image)} />
+                    
+                    <div className="relative z-10 flex items-start gap-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border bg-slate-900/50 backdrop-blur-sm",
+                        quest.border, quest.color
+                      )}>
+                        <History size={24} />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border bg-slate-900/50",
+                            quest.border, quest.color
+                          )}>
+                            {quest.difficulty}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-green-500/30 text-green-500 bg-slate-900/50">
+                            Concluída
+                          </span>
+                        </div>
+                        <h3 className="font-black text-xl mb-1">{quest.title}</h3>
+                        <p className="text-slate-400 text-sm font-medium">{quest.type} • {quest.duration}</p>
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 flex items-center gap-4 mt-4 md:mt-0">
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-slate-500 uppercase tracking-widest">Recompensa</div>
+                        <div className="text-lg font-black text-primary">+{quest.xp} XP</div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => setQuests(quests.filter(q => q.id !== quest.id))}
+                        className="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-500 hover:bg-red-500/30 transition-all"
+                        title="Excluir missão"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </DashboardCard>
+          )}
         </div>
       </div>
 
