@@ -17,7 +17,8 @@ import {
   Target,
   X,
   Plus,
-  Trash2
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +34,8 @@ export default function TreinoPage() {
   // Histórico de treinos realizados
   const [workoutHistory, setWorkoutHistory] = useState<{id: number, questId: number, title: string, xp: number, date: string, exercises: {name: string, series: number, reps: number, weight: number}[]}[]>([]);
   const [showHistoryDetail, setShowHistoryDetail] = useState<{id: number, questId: number, title: string, xp: number, date: string, exercises: {name: string, series: number, reps: number, weight: number}[]} | null>(null);
+  const [editingQuest, setEditingQuest] = useState<any>(null);
+  const [editExercises, setEditExercises] = useState<{name: string, series: number, reps: number, weight: number}[]>([]);
 
   const addToHistory = (entry: { questId: number, title: string, xp: number, date: string, exercises: {name: string, series: number, reps: number, weight: number}[] }) => {
     setWorkoutHistory(prev => [{ id: Date.now(), ...entry }, ...prev]);
@@ -73,6 +76,13 @@ export default function TreinoPage() {
       setExercises(activeQuest.exercises);
     } else if (activeQuest) {
       setExercises([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]);
+    }
+  }, [activeQuest]);
+
+  // Load exercises when editingQuest is set
+  useEffect(() => {
+    if (editingQuest?.exercises) {
+      setEditExercises(editingQuest.exercises);
     }
   }, [activeQuest]);
   
@@ -242,6 +252,14 @@ export default function TreinoPage() {
                       className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white hover:scale-110 transition-transform shadow-[0_0_20px_rgba(99,102,241,0.5)]"
                     >
                       <Play size={20} className="ml-1" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => setEditingQuest(quest)}
+                      className="w-10 h-10 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-accent hover:bg-accent/30 transition-all"
+                      title="Editar missão"
+                    >
+                      <Pencil size={16} />
                     </button>
                     
                     <button 
@@ -659,6 +677,116 @@ export default function TreinoPage() {
                     <div className="text-xs text-slate-400">Recompensa gained</div>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Quest Modal */}
+      <AnimatePresence>
+        {editingQuest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-accent/30 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.15)] w-full max-w-lg overflow-hidden relative flex flex-col max-h-[85vh]"
+            >
+              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+                    <Pencil size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg">Editar Missão</h3>
+                    <p className="text-xs text-slate-400">Ajuste os exercícios</p>
+                  </div>
+                </div>
+                <button onClick={() => setEditingQuest(null)} className="text-slate-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-400">Nome do Treino</label>
+                  <input 
+                    type="text" 
+                    value={editingQuest.title}
+                    onChange={(e) => setEditingQuest({...editingQuest, title: e.target.value})}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent/50 font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-400">XP Recompensa</label>
+                    <input type="number" value={editingQuest.xp} onChange={(e) => setEditingQuest({...editingQuest, xp: Number(e.target.value)})} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white" min="10" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-400">Duração (min)</label>
+                    <input type="number" value={parseInt(editingQuest.duration)} onChange={(e) => setEditingQuest({...editingQuest, duration: `${e.target.value} min`})} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white" min="10" />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-400">Exercícios</label>
+                  {editExercises.map((ex, index) => (
+                    <div key={index} className="p-3 bg-black/30 rounded-xl border border-white/5 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <input 
+                          type="text" 
+                          value={ex.name}
+                          onChange={(e) => {
+                            const newEx = [...editExercises];
+                            newEx[index].name = e.target.value;
+                            setEditExercises(newEx);
+                          }}
+                          className="bg-transparent border-b border-white/20 text-white font-bold focus:outline-none focus:border-accent w-2/3 text-sm"
+                          placeholder="Nome do exercício"
+                        />
+                        {editExercises.length > 1 && (
+                          <button onClick={() => setEditExercises(editExercises.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400">
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Séries</label>
+                          <input type="number" value={ex.series} onChange={(e) => { const newEx = [...editExercises]; newEx[index].series = Number(e.target.value); setEditExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm" min="1"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Reps</label>
+                          <input type="number" value={ex.reps} onChange={(e) => { const newEx = [...editExercises]; newEx[index].reps = Number(e.target.value); setEditExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm" min="1"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Kg</label>
+                          <input type="number" value={ex.weight} onChange={(e) => { const newEx = [...editExercises]; newEx[index].weight = Number(e.target.value); setEditExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm" min="0"/>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button 
+                    onClick={() => setEditExercises([...editExercises, { name: '', series: 3, reps: 10, weight: 0 }])}
+                    className="w-full py-2 border border-dashed border-white/20 rounded-xl text-slate-400 hover:text-white hover:border-white/50 transition-colors flex justify-center items-center gap-2 text-xs font-bold"
+                  >
+                    <Plus size={14} /> Adicionar Exercício
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-white/10 bg-black/20">
+                <button 
+                  onClick={() => {
+                    setQuests(quests.map(q => q.id === editingQuest.id ? { ...editingQuest, exercises: editExercises } : q));
+                    setEditingQuest(null);
+                  }}
+                  className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-4 rounded-xl"
+                >
+                  Salvar Alterações
+                </button>
               </div>
             </motion.div>
           </div>
