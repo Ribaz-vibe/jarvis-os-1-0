@@ -28,7 +28,7 @@ const defaultCategories: Record<HabitCategory, { icon: React.ElementType, color:
 
 // Custom category icons
 const customIcons: Record<string, React.ElementType> = {
-  Heart, Brain, Briefcase, Dumbbell, Zap, Flame, Trophy, Star
+  Heart, Brain, Briefcase, Dumbbell, Zap, Flame, Trophy
 };
 
 const iconOptions = [
