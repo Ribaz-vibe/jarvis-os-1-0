@@ -36,19 +36,19 @@ export default function WorkspacePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {/* Quick Stats */}
         <DashboardCard className="flex flex-col justify-center items-center py-8">
-          <div className="text-4xl font-black neon-text-cyan mb-2">12</div>
+          <div className="text-4xl font-black neon-text-cyan mb-2">{projects.length}</div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Projetos Ativos</div>
         </DashboardCard>
         <DashboardCard className="flex flex-col justify-center items-center py-8">
-          <div className="text-4xl font-black text-green-500 mb-2">4</div>
+          <div className="text-4xl font-black text-green-500 mb-2">0</div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Em Produção</div>
         </DashboardCard>
         <DashboardCard className="flex flex-col justify-center items-center py-8">
-          <div className="text-4xl font-black text-purple-500 mb-2">32h</div>
+          <div className="text-4xl font-black text-purple-500 mb-2">0h</div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Deep Work Semana</div>
         </DashboardCard>
         <DashboardCard className="flex flex-col justify-center items-center py-8">
-          <div className="text-4xl font-black text-primary mb-2">+800</div>
+          <div className="text-4xl font-black text-primary mb-2">+0</div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">XP de Dev</div>
         </DashboardCard>
       </div>

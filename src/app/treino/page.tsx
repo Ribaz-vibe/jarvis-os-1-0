@@ -16,7 +16,8 @@ import {
   TrendingUp,
   Target,
   X,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,9 @@ export default function TreinoPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
+  
+  // Missões do usuário (armazenadas localmente)
+  const [quests, setQuests] = useState<any[]>([]);
   
   // Multiple exercises state
   const [exercises, setExercises] = useState<any[]>([]);
@@ -57,8 +61,6 @@ export default function TreinoPage() {
         : [...prev.muscles, muscle]
     }));
   };
-
-  const quests: any[] = [];
 
   return (
     <div className="space-y-8 pb-20">
@@ -232,6 +234,14 @@ export default function TreinoPage() {
                         <Play size={20} className="ml-1" />
                       </button>
                     )}
+                    
+                    <button 
+                      onClick={() => setQuests(quests.filter(q => q.id !== quest.id))}
+                      className="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-500 hover:bg-red-500/30 transition-all"
+                      title="Excluir missão"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </motion.div>
               ))}
