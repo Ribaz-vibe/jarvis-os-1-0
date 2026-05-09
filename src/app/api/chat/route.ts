@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 
 const SYSTEM_PROMPT = `Você é o J.A.R.V.I.S., um assistente pessoal de IA sofisticado e elegante.
@@ -16,8 +15,6 @@ export async function POST(req: Request) {
   try {
     const { message, history, model } = await req.json();
     
-    // Primeiro tenta usar a API key do header (enviada pelo cliente)
-    // Depois fallback para variável de ambiente do servidor
     const clientApiKey = req.headers.get('x-api-key');
     const serverApiKey = process.env.OPENROUTER_API_KEY;
     
@@ -27,15 +24,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'API key não configurada. Configure no Settings ou variável de ambiente.' }, { status: 500 });
     }
 
-    const openai = new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: apiKey,
-      defaultHeaders: {
-        'HTTP-Referer': clientApiKey ? 'http://localhost:3000' : 'https://jarvis-os-1-0.vercel.app',
-        'X-OpenRouter-Title': 'Jarvis OS',
-      },
-    });
-
     const selectedModel = model || 'meta-llama/llama-3.2-3b-instruct:free';
 
     const messages = [
@@ -44,13 +32,28 @@ export async function POST(req: Request) {
       { role: 'user', content: message }
     ];
 
-    const completion = await openai.chat.completions.create({
-      model: selectedModel,
-      messages,
-      max_tokens: 1000,
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': clientApiKey ? 'http://localhost:3000' : 'https://jarvis-os-1-0.vercel.app',
+        'X-OpenRouter-Title': 'Jarvis OS',
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages: messages,
+        max_tokens: 1000,
+      })
     });
 
-    const responseText = completion.choices[0]?.message?.content || 'Desculpe, não consegui responder.';
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const responseText = data.choices?.[0]?.message?.content || 'Desculpe, não consegui responder.';
 
     return NextResponse.json({ response: responseText });
   } catch (error: any) {
