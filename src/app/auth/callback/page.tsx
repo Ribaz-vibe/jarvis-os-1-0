@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Bot } from "lucide-react";
 
+const REDIRECT_URL = process.env.NEXT_PUBLIC_REDIRECT_URL || 'https://jarvis-os-1-0.vercel.app';
+
 export default function AuthCallback() {
   const router = useRouter();
   const [status, setStatus] = useState("Verificando autenticação...");
@@ -24,7 +26,6 @@ export default function AuthCallback() {
 
         if (session) {
           setStatus("Login realizado com sucesso!");
-          // Salvar info do usuário
           localStorage.setItem('jarvis_user_id', session.user.id);
           localStorage.removeItem('jarvis_guest_mode');
           
