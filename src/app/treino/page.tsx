@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserStore } from '@/store/userStore';
 import { DashboardCard } from '@/components/shared/DashboardCard';
@@ -33,6 +33,33 @@ export default function TreinoPage() {
   
   // Multiple exercises state
   const [exercises, setExercises] = useState<any[]>([]);
+  
+  // Exercises in manual form
+  const [manualExercises, setManualExercises] = useState<{name: string, series: number, reps: number, weight: number}[]>([
+    { name: '', series: 3, reps: 10, weight: 0 }
+  ]);
+
+  // Load from localStorage
+  useEffect(() => {
+    const savedMissions = localStorage.getItem('jarvis_missions');
+    if (savedMissions) {
+      setQuests(JSON.parse(savedMissions));
+    }
+  }, []);
+
+  // Save to localStorage
+  useEffect(() => {
+    localStorage.setItem('jarvis_missions', JSON.stringify(quests));
+  }, [quests]);
+
+  // Load exercises when activeQuest is set
+  useEffect(() => {
+    if (activeQuest?.exercises) {
+      setExercises(activeQuest.exercises);
+    } else if (activeQuest) {
+      setExercises([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]);
+    }
+  }, [activeQuest]);
   
   // Manual quest form state
   const [manualForm, setManualForm] = useState({
@@ -494,18 +521,63 @@ export default function TreinoPage() {
                     <option value="Avançado">Avançado</option>
                   </select>
                 </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-400">Exercícios</label>
+                  {manualExercises.map((ex, index) => (
+                    <div key={index} className="p-3 bg-black/30 rounded-xl border border-white/5 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <input 
+                          type="text" 
+                          value={ex.name}
+                          onChange={(e) => {
+                            const newEx = [...manualExercises];
+                            newEx[index].name = e.target.value;
+                            setManualExercises(newEx);
+                          }}
+                          className="bg-transparent border-b border-white/20 text-white font-bold focus:outline-none focus:border-accent w-2/3 text-sm"
+                          placeholder="Nome do exercício"
+                        />
+                        {manualExercises.length > 1 && (
+                          <button onClick={() => setManualExercises(manualExercises.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400">
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Séries</label>
+                          <input type="number" value={ex.series} onChange={(e) => { const newEx = [...manualExercises]; newEx[index].series = Number(e.target.value); setManualExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm" min="1"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Reps</label>
+                          <input type="number" value={ex.reps} onChange={(e) => { const newEx = [...manualExercises]; newEx[index].reps = Number(e.target.value); setManualExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm" min="1"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Kg</label>
+                          <input type="number" value={ex.weight} onChange={(e) => { const newEx = [...manualExercises]; newEx[index].weight = Number(e.target.value); setManualExercises(newEx); }} className="w-full bg-black/50 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm" min="0"/>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button 
+                    onClick={() => setManualExercises([...manualExercises, { name: '', series: 3, reps: 10, weight: 0 }])}
+                    className="w-full py-2 border border-dashed border-white/20 rounded-xl text-slate-400 hover:text-white hover:border-white/50 transition-colors flex justify-center items-center gap-2 text-xs font-bold"
+                  >
+                    <Plus size={14} /> Adicionar Exercício
+                  </button>
+                </div>
               </div>
 
               <div className="p-4 border-t border-white/10 bg-black/20">
                 <button 
                   onClick={() => {
-                    if (!manualForm.title.trim() || manualForm.muscles.length === 0) {
-                      alert('Preencha o nome e selecione pelo menos um músculo.');
+                    const filledExercises = manualExercises.filter(ex => ex.name.trim());
+                    if (!manualForm.title.trim() || manualForm.muscles.length === 0 || filledExercises.length === 0) {
+                      alert('Preencha o nome, selecione pelo menos um músculo e adicione pelo menos um exercício.');
                       return;
                     }
-                    const newExercises = manualForm.muscles.map(m => ({ name: m, series: 3, reps: 10, weight: 0 }));
-                    setExercises(newExercises);
-                    setActiveQuest({
+                    setQuests(prev => [...prev, {
                       id: Date.now(),
                       title: manualForm.title,
                       type: manualForm.muscles.join(', '),
@@ -514,15 +586,18 @@ export default function TreinoPage() {
                       duration: `${manualForm.duration} min`,
                       status: 'available',
                       muscles: manualForm.muscles,
+                      exercises: filledExercises,
                       image: "bg-gradient-to-br from-accent/20 to-purple-500/5",
                       color: "text-accent",
                       border: "border-accent/30"
-                    });
+                    }]);
+                    setManualForm({ title: '', muscles: [], duration: 30, difficulty: 'Intermediário', xp: 50 });
+                    setManualExercises([{ name: '', series: 3, reps: 10, weight: 0 }]);
                     setShowManualModal(false);
                   }}
                   className="w-full bg-accent hover:bg-accent/90 text-white font-bold py-4 rounded-xl"
                 >
-                  Criar e Iniciar
+                  Criar Missão
                 </button>
               </div>
             </motion.div>
