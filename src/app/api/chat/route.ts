@@ -16,17 +16,22 @@ export async function POST(req: Request) {
   try {
     const { message, history, model } = await req.json();
     
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    // Primeiro tenta usar a API key do header (enviada pelo cliente)
+    // Depois fallback para variável de ambiente do servidor
+    const clientApiKey = req.headers.get('x-api-key');
+    const serverApiKey = process.env.OPENROUTER_API_KEY;
+    
+    const apiKey = clientApiKey || serverApiKey;
     
     if (!apiKey) {
-      return NextResponse.json({ error: 'API key não configurada no servidor' }, { status: 500 });
+      return NextResponse.json({ error: 'API key não configurada. Configure no Settings ou variável de ambiente.' }, { status: 500 });
     }
 
     const openai = new OpenAI({
       baseURL: 'https://openrouter.ai/api/v1',
       apiKey: apiKey,
       defaultHeaders: {
-        'HTTP-Referer': 'https://jarvis-os-1-0.vercel.app',
+        'HTTP-Referer': clientApiKey ? 'http://localhost:3000' : 'https://jarvis-os-1-0.vercel.app',
         'X-OpenRouter-Title': 'Jarvis OS',
       },
     });

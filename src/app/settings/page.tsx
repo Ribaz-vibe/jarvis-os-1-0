@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useUserStore } from '@/store/userStore';
+import { useLocalConfig } from '@/lib/localConfig';
 import { DashboardCard } from '@/components/shared/DashboardCard';
 import { 
   Settings, 
@@ -12,19 +13,26 @@ import {
   CheckCircle2, 
   AlertCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  Brain
 } from 'lucide-react';
 
 export default function SettingsPage() {
   const { config, updateConfig } = useUserStore();
+  const { openrouterApiKey, geminiApiKey: localGemini, setOpenrouterApiKey, setGeminiApiKey } = useLocalConfig();
   const [formData, setFormData] = useState({
-    geminiApiKey: config.geminiApiKey || '',
+    geminiApiKey: config.geminiApiKey || localGemini || '',
     googleClientId: config.googleClientId || '',
+    openrouterApiKey: openrouterApiKey || '',
   });
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
+    // Salvar no localStorage para testes locais
+    setOpenrouterApiKey(formData.openrouterApiKey);
+    setGeminiApiKey(formData.geminiApiKey);
+    // Salvar no Supabase (userStore)
     updateConfig(formData);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -105,6 +113,43 @@ export default function SettingsPage() {
               </div>
             </div>
           </DashboardCard>
+
+          <DashboardCard title="OpenRouter (Chat IA)">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
+                <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500">
+                  <Brain size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">OpenRouter API</h3>
+                  <p className="text-sm text-slate-400">Para usar chatbots no Jarvis (Llama, Qwen, etc).</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-400 flex justify-between">
+                  API Key
+                  <button 
+                    onClick={() => setShowKey(!showKey)}
+                    className="text-primary hover:underline flex items-center gap-1"
+                  >
+                    {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showKey ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                </label>
+                <input 
+                  type={showKey ? "text" : "password"}
+                  value={formData.openrouterApiKey}
+                  onChange={(e) => setFormData({ ...formData, openrouterApiKey: e.target.value })}
+                  placeholder="sk-or-v1-..."
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors"
+                />
+                <p className="text-[10px] text-slate-500 italic">
+                  Obtenha sua chave em openrouter.ai
+                </p>
+              </div>
+            </div>
+          </DashboardCard>
         </div>
 
         <div className="space-y-8">
@@ -112,15 +157,21 @@ export default function SettingsPage() {
             <div className="space-y-6">
               <div className="p-4 rounded-xl border border-white/5 bg-white/5 space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-400">Agente IA</span>
-                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${config.geminiApiKey ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                    {config.geminiApiKey ? 'Online' : 'Offline'}
+                  <span className="text-sm font-medium text-slate-400">OpenRouter Chat</span>
+                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${formData.openrouterApiKey ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                    {formData.openrouterApiKey ? 'Online' : 'Offline'}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-400">Agente IA (Gemini)</span>
+                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${formData.geminiApiKey ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                    {formData.geminiApiKey ? 'Online' : 'Offline'}
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-400">Sincronização Agenda</span>
-                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${config.googleClientId ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                    {config.googleClientId ? 'Pronto' : 'Pendente'}
+                  <div className={`flex items-center gap-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${formData.googleClientId ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                    {formData.googleClientId ? 'Pronto' : 'Pendente'}
                   </div>
                 </div>
               </div>

@@ -13,12 +13,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserStore } from '@/store/userStore';
+import { useLocalConfig } from '@/lib/localConfig';
 import { supabase } from '@/lib/supabase';
 
 const USER_ID = '00000000-0000-0000-0000-000000000000';
 
 export default function AgenteIAPage() {
   const { config } = useUserStore();
+  const { openrouterApiKey } = useLocalConfig();
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -84,11 +86,18 @@ export default function AgenteIAPage() {
       // Exclude the last message we just added to send as current message, and format history
       const historyForApi = messages.map(m => ({ role: m.role, content: m.content }));
       
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      // Adicionar API key do localStorage se disponível
+      if (openrouterApiKey) {
+        headers['x-api-key'] = openrouterApiKey;
+      }
+      
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           message: input,
           history: historyForApi,
