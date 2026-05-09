@@ -6,9 +6,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Bot, LogIn } from "lucide-react";
 
-const REDIRECT_URL = process.env.NEXT_PUBLIC_REDIRECT_URL || 
-  (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -25,10 +22,12 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
+      // Always use the current page's origin — works on any domain automatically
+      const redirectTo = `${window.location.origin}/auth/callback`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${REDIRECT_URL}/auth/callback`,
+          redirectTo,
         },
       });
       if (error) throw error;
