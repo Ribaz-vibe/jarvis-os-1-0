@@ -15,7 +15,21 @@ import {
   X,
   Pencil,
   Trash2,
-  Eye
+  Eye,
+  Star,
+  Moon,
+  Sun,
+  Cloud,
+  Leaf,
+  Flame as FireIcon,
+  Zap as BoltIcon,
+  Coffee,
+  Book,
+  Music,
+  Code,
+  Gamepad2,
+  Wallet,
+  ShoppingBag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/shared/DashboardCard';
@@ -29,30 +43,53 @@ interface Habit {
   streak: number;
 }
 
-type HabitCategory = 'health' | 'mind' | 'work' | 'fitness';
+interface CustomCategory {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
 
-const defaultCategories: Record<HabitCategory, { icon: React.ElementType, color: string, bg: string, label: string }> = {
+type HabitCategory = 'health' | 'mind' | 'work' | 'fitness' | string;
+
+const defaultCategories: Record<string, { icon: React.ElementType, color: string, bg: string, label: string }> = {
   health: { icon: Heart, color: 'text-pink-500', bg: 'bg-pink-500/10 border-pink-500/20', label: 'Saúde' },
   mind: { icon: Brain, color: 'text-purple-500', bg: 'bg-purple-500/10 border-purple-500/20', label: 'Mente' },
   work: { icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/20', label: 'Trabalho' },
   fitness: { icon: Dumbbell, color: 'text-cyan-500', bg: 'bg-cyan-500/10 border-cyan-500/20', label: 'Físico' },
 };
 
+const availableIcons: Record<string, React.ElementType> = {
+  Heart, Brain, Briefcase, Dumbbell, Star, Moon, Sun, Cloud, Leaf, FireIcon, BoltIcon, Coffee, Book, Music, Code, Gamepad2, Wallet, ShoppingBag
+};
+
+const availableColors = [
+  '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'
+];
+
 export default function HabitosPage() {
   // Estado local para hábitos (sem Supabase)
   const [habits, setHabits] = useState<Habit[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
   const [filter, setFilter] = useState<HabitCategory | 'all'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
+  const [deleteConfirmCategory, setDeleteConfirmCategory] = useState<string | null>(null);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [newHabit, setNewHabit] = useState({ title: '', category: 'health' as HabitCategory, xpReward: 10 });
+  const [newCategory, setNewCategory] = useState({ name: '', color: '#8b5cf6', icon: 'Star' });
   
   // Carregar do localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('jarvis_habits');
-    if (saved) {
-      setHabits(JSON.parse(saved));
+    const savedHabits = localStorage.getItem('jarvis_habits');
+    if (savedHabits) {
+      setHabits(JSON.parse(savedHabits));
+    }
+    const savedCategories = localStorage.getItem('jarvis_custom_categories');
+    if (savedCategories) {
+      setCustomCategories(JSON.parse(savedCategories));
     }
   }, []);
 
@@ -61,7 +98,30 @@ export default function HabitosPage() {
     localStorage.setItem('jarvis_habits', JSON.stringify(habits));
   }, [habits]);
 
-  const allCategories = defaultCategories;
+  useEffect(() => {
+    localStorage.setItem('jarvis_custom_categories', JSON.stringify(customCategories));
+  }, [customCategories]);
+
+  // Função para obter ícone pelo nome
+  const getIconComponent = (iconName: string) => {
+    return availableIcons[iconName] || Star;
+  };
+
+  // Função para obter todas as categorias (padrão + customizadas)
+  const getAllCategories = () => {
+    const customCatConfig: Record<string, { icon: React.ElementType, color: string, bg: string, label: string }> = {};
+    customCategories.forEach(cat => {
+      customCatConfig[cat.id] = {
+        icon: getIconComponent(cat.icon),
+        color: cat.color.startsWith('#') ? `text-[${cat.color}]` : cat.color,
+        bg: `bg-[${cat.color}/10] border-[${cat.color}/20]`,
+        label: cat.name
+      };
+    });
+    return { ...defaultCategories, ...customCatConfig };
+  };
+
+  const allCategories = getAllCategories();
 
   const filteredHabits = filter === 'all' ? habits : habits.filter(h => h.category === filter);
 
@@ -107,6 +167,32 @@ export default function HabitosPage() {
     if (confirm('Tem certeza que deseja excluir este hábito?')) {
       setHabits(prev => prev.filter(h => h.id !== id));
     }
+  };
+
+  const handleAddCategory = () => {
+    if (newCategory.name.trim()) {
+      const category: CustomCategory = {
+        id: 'cat_' + Date.now(),
+        name: newCategory.name,
+        color: newCategory.color,
+        icon: newCategory.icon
+      };
+      setCustomCategories([...customCategories, category]);
+      setShowNewCategoryForm(false);
+      setNewCategory({ name: '', color: '#8b5cf6', icon: 'Star' });
+    }
+  };
+
+  const handleDeleteCategory = (catId: string) => {
+    // Mover hábitos da categoria para "Sem categoria" ou excluí-los
+    const habitsInCategory = habits.filter(h => h.category === catId);
+    if (habitsInCategory.length > 0) {
+      if (confirm(`Esta categoria tem ${habitsInCategory.length} hábito(s). Deseja movê-los para "Saúde"?`)) {
+        setHabits(prev => prev.map(h => h.category === catId ? { ...h, category: 'health' } : h));
+      }
+    }
+    setCustomCategories(prev => prev.filter(c => c.id !== catId));
+    setDeleteConfirmCategory(null);
   };
 
   const progress = habits.length > 0 ? (habits.filter(h => h.completedToday).length / habits.length) * 100 : 0;
@@ -435,7 +521,7 @@ export default function HabitosPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden relative p-6"
+              className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden relative p-6 max-h-[80vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-black">Categorias de Hábitos</h3>
@@ -444,8 +530,107 @@ export default function HabitosPage() {
                 </button>
               </div>
 
+              {/* Delete Confirmation */}
+              {deleteConfirmCategory && (
+                <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-white text-center mb-4">Tem certeza que deseja excluir esta categoria?</p>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => handleDeleteCategory(deleteConfirmCategory)}
+                      className="flex-1 py-2 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600"
+                    >
+                      Sim, excluir
+                    </button>
+                    <button 
+                      onClick={() => setDeleteConfirmCategory(null)}
+                      className="flex-1 py-2 rounded-lg bg-white/10 text-white font-bold hover:bg-white/20"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* New Category Form */}
+              {showNewCategoryForm ? (
+                <div className="space-y-4 mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-400">Nome da Categoria</label>
+                    <input 
+                      type="text" 
+                      value={newCategory.name}
+                      onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                      placeholder="Ex: Estudos"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-400">Cor</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {availableColors.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => setNewCategory({...newCategory, color})}
+                          className={cn(
+                            "w-8 h-8 rounded-full border-2",
+                            newCategory.color === color ? "border-white" : "border-transparent"
+                          )}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-400">Ícone</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {Object.keys(availableIcons).map(iconName => {
+                        const IconComp = availableIcons[iconName];
+                        return (
+                          <button
+                            key={iconName}
+                            onClick={() => setNewCategory({...newCategory, icon: iconName})}
+                            className={cn(
+                              "w-10 h-10 rounded-lg flex items-center justify-center border-2",
+                              newCategory.icon === iconName ? "border-primary bg-primary/20" : "border-white/10"
+                            )}
+                          >
+                            <IconComp size={20} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button 
+                      onClick={handleAddCategory}
+                      className="flex-1 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary/90"
+                    >
+                      Criar Categoria
+                    </button>
+                    <button 
+                      onClick={() => { setShowNewCategoryForm(false); setNewCategory({ name: '', color: '#8b5cf6', icon: 'Star' }); }}
+                      className="px-4 py-3 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowNewCategoryForm(true)}
+                  className="w-full mb-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 flex items-center justify-center gap-2"
+                >
+                  <Plus size={18} />
+                  Nova Categoria
+                </button>
+              )}
+
               <div className="space-y-3">
-                {(Object.keys(defaultCategories) as HabitCategory[]).map(cat => {
+                {/* Default Categories */}
+                {(Object.keys(defaultCategories) as string[]).map(cat => {
                   const config = defaultCategories[cat];
                   const Icon = config.icon;
                   const count = habits.filter(h => h.category === cat).length;
@@ -460,6 +645,32 @@ export default function HabitosPage() {
                           <div className="text-xs text-slate-500">{count} hábito(s)</div>
                         </div>
                       </div>
+                    </div>
+                  );
+                })}
+
+                {/* Custom Categories */}
+                {customCategories.map(cat => {
+                  const IconComp = getIconComponent(cat.icon);
+                  const count = habits.filter(h => h.category === cat.id).length;
+                  return (
+                    <div key={cat.id} className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: `${cat.color}15`, borderColor: `${cat.color}30` }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${cat.color}20` }}>
+                          <IconComp size={20} style={{ color: cat.color }} />
+                        </div>
+                        <div>
+                          <div className="font-bold">{cat.name}</div>
+                          <div className="text-xs text-slate-500">{count} hábito(s)</div>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setDeleteConfirmCategory(cat.id)}
+                        className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-500"
+                        title="Excluir categoria"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   );
                 })}
