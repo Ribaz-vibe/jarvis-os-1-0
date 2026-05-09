@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUserStore, HabitCategory } from '@/store/userStore';
 import { 
   Heart, 
   Brain, 
@@ -14,10 +13,23 @@ import {
   Trophy,
   Zap,
   X,
-  FolderPlus
+  Pencil,
+  Trash2,
+  Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/shared/DashboardCard';
+
+interface Habit {
+  id: string;
+  title: string;
+  category: string;
+  xpReward: number;
+  completedToday: boolean;
+  streak: number;
+}
+
+type HabitCategory = 'health' | 'mind' | 'work' | 'fitness';
 
 const defaultCategories: Record<HabitCategory, { icon: React.ElementType, color: string, bg: string, label: string }> = {
   health: { icon: Heart, color: 'text-pink-500', bg: 'bg-pink-500/10 border-pink-500/20', label: 'Saúde' },
@@ -26,42 +38,74 @@ const defaultCategories: Record<HabitCategory, { icon: React.ElementType, color:
   fitness: { icon: Dumbbell, color: 'text-cyan-500', bg: 'bg-cyan-500/10 border-cyan-500/20', label: 'Físico' },
 };
 
-// Custom category icons
-const customIcons: Record<string, React.ElementType> = {
-  Heart, Brain, Briefcase, Dumbbell, Zap, Flame, Trophy
-};
-
-const iconOptions = [
-  { name: 'Heart', icon: Heart },
-  { name: 'Brain', icon: Brain },
-  { name: 'Briefcase', icon: Briefcase },
-  { name: 'Dumbbell', icon: Dumbbell },
-  { name: 'Zap', icon: Zap },
-  { name: 'Flame', icon: Flame },
-  { name: 'Trophy', icon: Trophy },
-];
-
-const Star = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>;
-
 export default function HabitosPage() {
-  const { habits, toggleHabit, addXp, addHabit } = useUserStore();
+  // Estado local para hábitos (sem Supabase)
+  const [habits, setHabits] = useState<Habit[]>([]);
   const [filter, setFilter] = useState<HabitCategory | 'all'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [newHabit, setNewHabit] = useState({ title: '', category: 'health' as HabitCategory, xpReward: 10 });
-  const [newCategory, setNewCategory] = useState({ name: '', color: '#a855f7', icon: 'Star' });
-  const [customCategories, setCustomCategories] = useState<Record<string, any>>({});
   
-  const allCategories = { ...defaultCategories, ...customCategories };
-  const categoryConfig = allCategories;
+  // Carregar do localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('jarvis_habits');
+    if (saved) {
+      setHabits(JSON.parse(saved));
+    }
+  }, []);
+
+  // Salvar no localStorage
+  useEffect(() => {
+    localStorage.setItem('jarvis_habits', JSON.stringify(habits));
+  }, [habits]);
+
+  const allCategories = defaultCategories;
 
   const filteredHabits = filter === 'all' ? habits : habits.filter(h => h.category === filter);
 
-  const handleToggle = (id: string, xpReward: number, currentlyCompleted: boolean) => {
-    toggleHabit(id);
-    if (!currentlyCompleted) {
-      addXp(xpReward);
-      // Play a little sound or vibration if needed in the future
+  const handleToggle = (id: string) => {
+    setHabits(prev => prev.map(h => {
+      if (h.id === id) {
+        return { ...h, completedToday: !h.completedToday, streak: !h.completedToday ? h.streak + 1 : Math.max(0, h.streak - 1) };
+      }
+      return h;
+    }));
+  };
+
+  const handleAddHabit = () => {
+    if (newHabit.title.trim()) {
+      const habit: Habit = {
+        id: Date.now().toString(),
+        title: newHabit.title,
+        category: newHabit.category,
+        xpReward: newHabit.xpReward,
+        completedToday: false,
+        streak: 0
+      };
+      setHabits([...habits, habit]);
+      setShowAddModal(false);
+      setNewHabit({ title: '', category: 'health', xpReward: 10 });
+    }
+  };
+
+  const handleEditHabit = (habit: Habit) => {
+    setEditingHabit(habit);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingHabit && editingHabit.title.trim()) {
+      setHabits(prev => prev.map(h => h.id === editingHabit.id ? editingHabit : h));
+      setShowEditModal(false);
+      setEditingHabit(null);
+    }
+  };
+
+  const handleDeleteHabit = (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este hábito?')) {
+      setHabits(prev => prev.filter(h => h.id !== id));
     }
   };
 
@@ -76,13 +120,22 @@ export default function HabitosPage() {
           <p className="text-slate-400">Forje seu caráter através da repetição. Consistência é a chave.</p>
         </div>
         
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary px-6 py-3 rounded-xl border border-primary/30 transition-all group"
-        >
-          <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-          <span className="font-bold">Novo Hábito</span>
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setShowCategoryModal(true)}
+            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-5 py-3 rounded-xl border border-white/10 transition-all"
+          >
+            <Eye size={18} />
+            <span className="font-bold text-sm">Categorias</span>
+          </button>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary px-6 py-3 rounded-xl border border-primary/30 transition-all group"
+          >
+            <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+            <span className="font-bold">Novo Hábito</span>
+          </button>
+        </div>
       </div>
 
       {/* Progress & Stats overview */}
@@ -117,93 +170,77 @@ export default function HabitosPage() {
               <Zap className="text-yellow-500" size={16} />
             </div>
           </div>
-          <div className="text-2xl font-black">12 Dias</div>
+          <div className="text-2xl font-black">0 Dias</div>
           <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Streak Perfeito</div>
         </DashboardCard>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      {/* Category Filter */}
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setFilter('all')}
           className={cn(
-            "px-6 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap",
-            filter === 'all' ? "bg-white text-black" : "bg-white/5 text-slate-400 hover:bg-white/10"
+            "px-4 py-2 rounded-xl font-bold text-sm transition-all",
+            filter === 'all' ? "bg-primary text-white" : "bg-white/5 text-slate-400 hover:bg-white/10"
           )}
         >
-          Todos
+          Todos ({habits.length})
         </button>
-        {(Object.keys(categoryConfig) as HabitCategory[]).map(cat => {
-          const config = categoryConfig[cat];
+        {(Object.keys(defaultCategories) as HabitCategory[]).map(cat => {
+          const count = habits.filter(h => h.category === cat).length;
+          const config = defaultCategories[cat];
           const Icon = config.icon;
-          const isActive = filter === cat;
           return (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
               className={cn(
-                "px-6 py-2 rounded-full font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap",
-                isActive ? config.bg + " border" : "bg-white/5 text-slate-400 hover:bg-white/10"
+                "px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all",
+                filter === cat ? config.bg + " " + config.color : "bg-white/5 text-slate-400 hover:bg-white/10"
               )}
             >
-              <Icon size={16} className={isActive ? config.color : ""} />
-              <span className={isActive ? config.color : ""}>{config.label}</span>
+              <Icon size={16} />
+              {config.label} ({count})
             </button>
           );
         })}
-        <button
-          onClick={() => setShowCategoryModal(true)}
-          className="px-4 py-2 rounded-full font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap bg-white/5 text-slate-400 hover:bg-white/10 border border-dashed border-white/20"
-        >
-          <FolderPlus size={16} />
-          <span>Nova Categoria</span>
-        </button>
       </div>
 
-      {/* Habits Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        <AnimatePresence>
-          {filteredHabits.map((habit, i) => {
-            const config = categoryConfig[habit.category];
+      {/* Habits List */}
+      <div className="space-y-4">
+        <AnimatePresence mode="popLayout">
+          {filteredHabits.map((habit) => {
+            const config = defaultCategories[habit.category as HabitCategory] || defaultCategories.health;
             const Icon = config.icon;
             
             return (
               <motion.div
+                key={habit.id}
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: i * 0.05 }}
-                key={habit.id}
                 className={cn(
-                  "p-5 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden",
+                  "group relative p-4 rounded-2xl border transition-all cursor-pointer",
                   habit.completedToday 
-                    ? "bg-primary/5 border-primary/30" 
-                    : "glass-card hover:border-white/20"
+                    ? "bg-white/5 border-white/10 opacity-70" 
+                    : "bg-slate-900/50 border-white/5 hover:border-white/20"
                 )}
-                onClick={() => handleToggle(habit.id, habit.xpReward, habit.completedToday)}
+                onClick={() => handleToggle(habit.id)}
               >
-                {habit.completedToday && (
-                  <motion.div 
-                    layoutId={`bg-${habit.id}`}
-                    className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" 
-                  />
-                )}
-
-                <div className="relative z-10 flex items-start justify-between gap-4">
-                  <div className="flex gap-4 items-start">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
                     <div className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all border",
-                      habit.completedToday ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(99,102,241,0.5)]" : config.bg,
-                      !habit.completedToday && config.color
+                      "w-12 h-12 rounded-xl flex items-center justify-center border-2 transition-all",
+                      habit.completedToday ? "bg-primary border-primary" : config.bg + " border-current"
                     )}>
-                      {habit.completedToday ? <Check size={24} /> : <Icon size={24} />}
+                      {habit.completedToday ? <Check size={24} /> : <Icon size={24} className={config.color} />}
                     </div>
                     
                     <div>
                       <h3 className={cn(
                         "font-bold text-lg transition-colors",
-                        habit.completedToday ? "text-white" : "text-slate-200 group-hover:text-white"
+                        habit.completedToday ? "text-white line-through" : "text-slate-200 group-hover:text-white"
                       )}>
                         {habit.title}
                       </h3>
@@ -219,10 +256,30 @@ export default function HabitosPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-1 text-orange-500">
-                      <Flame size={16} className={habit.streak > 0 ? "fill-orange-500" : ""} />
-                      <span className="font-bold text-sm">{habit.streak}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-1 text-orange-500">
+                        <Flame size={16} className={habit.streak > 0 ? "fill-orange-500" : ""} />
+                        <span className="font-bold text-sm">{habit.streak}</span>
+                      </div>
+                    </div>
+
+                    {/* Botões de editar e excluir */}
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleEditHabit(habit); }}
+                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white"
+                        title="Editar"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteHabit(habit.id); }}
+                        className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-500"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -230,6 +287,13 @@ export default function HabitosPage() {
             );
           })}
         </AnimatePresence>
+
+        {filteredHabits.length === 0 && (
+          <div className="text-center py-12 text-slate-500">
+            <p className="text-lg">Nenhum hábito encontrado</p>
+            <p className="text-sm mt-2">Clique em "Novo Hábito" para criar o primeiro</p>
+          </div>
+        )}
       </div>
 
       {/* Add Habit Modal */}
@@ -245,7 +309,6 @@ export default function HabitosPage() {
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-black">Criar Novo Hábito</h3>
                 <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
-                  <Check className="opacity-0 w-0" /> {/* dummy icon just to balance or we can use X but X needs import, wait, X is not imported. let's import X or just use text */}
                   <span className="text-lg">✕</span>
                 </button>
               </div>
@@ -269,8 +332,8 @@ export default function HabitosPage() {
                     onChange={(e) => setNewHabit({...newHabit, category: e.target.value as HabitCategory})}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 appearance-none"
                   >
-                    {(Object.keys(categoryConfig) as HabitCategory[]).map(cat => (
-                      <option key={cat} value={cat}>{categoryConfig[cat].label}</option>
+                    {(Object.keys(defaultCategories) as HabitCategory[]).map(cat => (
+                      <option key={cat} value={cat}>{defaultCategories[cat].label}</option>
                     ))}
                   </select>
                 </div>
@@ -288,13 +351,7 @@ export default function HabitosPage() {
                 </div>
 
                 <button 
-                  onClick={() => {
-                    if (newHabit.title.trim()) {
-                      addHabit(newHabit);
-                      setShowAddModal(false);
-                      setNewHabit({ title: '', category: 'health', xpReward: 10 });
-                    }
-                  }}
+                  onClick={handleAddHabit}
                   className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primary/90 mt-4"
                 >
                   Adicionar Hábito
@@ -304,10 +361,10 @@ export default function HabitosPage() {
           </div>
         )}
       </AnimatePresence>
-      
-      {/* Add Category Modal */}
+
+      {/* Edit Habit Modal */}
       <AnimatePresence>
-        {showCategoryModal && (
+        {showEditModal && editingHabit && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -316,80 +373,96 @@ export default function HabitosPage() {
               className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative p-6"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-black">Nova Categoria</h3>
-                <button onClick={() => setShowCategoryModal(false)} className="text-slate-400 hover:text-white text-lg">✕</button>
+                <h3 className="text-2xl font-black">Editar Hábito</h3>
+                <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-white">
+                  <span className="text-lg">✕</span>
+                </button>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-400">Nome da Categoria</label>
+                  <label className="text-sm font-bold text-slate-400">Título</label>
                   <input 
                     type="text" 
-                    value={newCategory.name}
-                    onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                    value={editingHabit.title}
+                    onChange={(e) => setEditingHabit({...editingHabit, title: e.target.value})}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
-                    placeholder="Ex: Estudos"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-400">Cor</label>
-                  <div className="flex gap-2">
-                    {['#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#6366f1'].map(color => (
-                      <button
-                        key={color}
-                        onClick={() => setNewCategory({...newCategory, color})}
-                        className={cn("w-8 h-8 rounded-full transition-transform", newCategory.color === color && "scale-110 ring-2 ring-white")}
-                        style={{ backgroundColor: color }}
-                      />
+                  <label className="text-sm font-bold text-slate-400">Categoria</label>
+                  <select 
+                    value={editingHabit.category}
+                    onChange={(e) => setEditingHabit({...editingHabit, category: e.target.value})}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 appearance-none"
+                  >
+                    {(Object.keys(defaultCategories) as HabitCategory[]).map(cat => (
+                      <option key={cat} value={cat}>{defaultCategories[cat].label}</option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-400">Ícone</label>
-                  <div className="flex flex-wrap gap-2">
-                    {iconOptions.map(opt => {
-                      const Icon = opt.icon;
-                      return (
-                        <button
-                          key={opt.name}
-                          onClick={() => setNewCategory({...newCategory, icon: opt.name})}
-                          className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center transition-all",
-                            newCategory.icon === opt.name ? "bg-primary text-white" : "bg-white/5 text-slate-400"
-                          )}
-                        >
-                          <Icon size={18} />
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <label className="text-sm font-bold text-slate-400">Recompensa (XP)</label>
+                  <input 
+                    type="number" 
+                    value={editingHabit.xpReward}
+                    onChange={(e) => setEditingHabit({...editingHabit, xpReward: Number(e.target.value)})}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                    min="5"
+                    step="5"
+                  />
                 </div>
 
                 <button 
-                  onClick={() => {
-                    if (newCategory.name.trim()) {
-                      const slug = newCategory.name.toLowerCase().replace(/\s+/g, '_');
-                      const IconComponent = customIcons[newCategory.icon] || Star;
-                      setCustomCategories(prev => ({
-                        ...prev,
-                        [slug]: { 
-                          icon: IconComponent, 
-                          color: newCategory.color, 
-                          bg: `bg-[${newCategory.color.slice(1)}]/10 border-[${newCategory.color.slice(1)}]/20`, 
-                          label: newCategory.name 
-                        }
-                      }));
-                      setNewHabit(prev => ({ ...prev, category: slug as HabitCategory }));
-                      setShowCategoryModal(false);
-                      setNewCategory({ name: '', color: '#a855f7', icon: 'Star' });
-                    }
-                  }}
+                  onClick={handleSaveEdit}
                   className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primary/90 mt-4"
                 >
-                  Criar Categoria
+                  Salvar Alterações
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Category Modal */}
+      <AnimatePresence>
+        {showCategoryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden relative p-6"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black">Categorias de Hábitos</h3>
+                <button onClick={() => setShowCategoryModal(false)} className="text-slate-400 hover:text-white">
+                  <span className="text-lg">✕</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {(Object.keys(defaultCategories) as HabitCategory[]).map(cat => {
+                  const config = defaultCategories[cat];
+                  const Icon = config.icon;
+                  const count = habits.filter(h => h.category === cat).length;
+                  return (
+                    <div key={cat} className={cn("flex items-center justify-between p-4 rounded-xl border", config.bg)}>
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", config.bg)}>
+                          <Icon size={20} className={config.color} />
+                        </div>
+                        <div>
+                          <div className="font-bold">{config.label}</div>
+                          <div className="text-xs text-slate-500">{count} hábito(s)</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           </div>
