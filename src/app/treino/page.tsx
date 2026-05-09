@@ -31,9 +31,10 @@ export default function TreinoPage() {
   const [quests, setQuests] = useState<any[]>([]);
   
   // Histórico de treinos realizados
-  const [workoutHistory, setWorkoutHistory] = useState<{id: number, questId: number, title: string, xp: number, date: string}[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<{id: number, questId: number, title: string, xp: number, date: string, exercises: {name: string, series: number, reps: number, weight: number}[]}[]>([]);
+  const [showHistoryDetail, setShowHistoryDetail] = useState<{id: number, questId: number, title: string, xp: number, date: string, exercises: {name: string, series: number, reps: number, weight: number}[]} | null>(null);
 
-  const addToHistory = (entry: { questId: number, title: string, xp: number, date: string }) => {
+  const addToHistory = (entry: { questId: number, title: string, xp: number, date: string, exercises: {name: string, series: number, reps: number, weight: number}[] }) => {
     setWorkoutHistory(prev => [{ id: Date.now(), ...entry }, ...prev]);
   };
 
@@ -265,7 +266,8 @@ export default function TreinoPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
                     key={entry.id}
-                    className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10"
+                    onClick={() => setShowHistoryDetail(entry)}
+                    className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 transition-all"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -349,7 +351,7 @@ export default function TreinoPage() {
                         addWorkoutLog({ questId: activeQuest.id, series: ex.series, reps: ex.reps, weight: ex.weight });
                       });
                       addXp(activeQuest.xp);
-                      addToHistory({ questId: activeQuest.id, title: activeQuest.title, xp: activeQuest.xp, date: new Date().toISOString() });
+                      addToHistory({ questId: activeQuest.id, title: activeQuest.title, xp: activeQuest.xp, date: new Date().toISOString(), exercises: exercises.map(ex => ({ name: ex.name, series: ex.series, reps: ex.reps, weight: ex.weight })) });
                       setActiveQuest(null);
                       setExercises([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]);
                     }}
@@ -597,6 +599,66 @@ export default function TreinoPage() {
                 >
                   Criar Missão
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* History Detail Modal */}
+      <AnimatePresence>
+        {showHistoryDetail && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative"
+            >
+              <div className="p-6">
+                <button 
+                  onClick={() => setShowHistoryDetail(null)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+                
+                <h3 className="text-2xl font-black mb-1 pr-8">{showHistoryDetail.title}</h3>
+                <p className="text-slate-400 text-sm mb-6">
+                  {new Date(showHistoryDetail.date).toLocaleDateString('pt-BR')} às {new Date(showHistoryDetail.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+
+                <div className="space-y-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                  {showHistoryDetail.exercises?.map((ex, index) => (
+                    <div key={index} className="p-4 bg-black/30 rounded-xl border border-white/5">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-white font-bold">{ex.name}</span>
+                        <span className="text-xs text-slate-500">Exercício {index + 1}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-white/5 rounded-lg py-2">
+                          <div className="text-xs font-bold text-slate-400 uppercase">Séries</div>
+                          <div className="text-white font-black">{ex.series}</div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg py-2">
+                          <div className="text-xs font-bold text-slate-400 uppercase">Reps</div>
+                          <div className="text-white font-black">{ex.reps}</div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg py-2">
+                          <div className="text-xs font-bold text-slate-400 uppercase">Peso</div>
+                          <div className="text-white font-black">{ex.weight}kg</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 p-4 bg-primary/10 rounded-xl border border-primary/20">
+                  <div className="text-center">
+                    <div className="text-lg font-black text-primary">+{showHistoryDetail.xp} XP</div>
+                    <div className="text-xs text-slate-400">Recompensa gained</div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>
