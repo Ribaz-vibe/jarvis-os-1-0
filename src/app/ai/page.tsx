@@ -53,8 +53,8 @@ export default function AgenteIAPage() {
         setMessages([{
           id: 1,
           role: 'assistant',
-          content: 'Saudações, Comandante. Sistemas online. Analisei seu padrão de sono e hábitos recentes. Recomendo focar no projeto de Landing Page hoje pela manhã, pois seu pico de energia mental ocorre entre 09:00 e 11:30. Como posso ajudar agora?',
-          time: '08:00',
+          content: 'Saudações, Comandante. Sistemas online. Configure sua API key na aba de Settings para ativar as funções de IA. Como posso ajudar?',
+          time: '00:00',
         }]);
       }
     };

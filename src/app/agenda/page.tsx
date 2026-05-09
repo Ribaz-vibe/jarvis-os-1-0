@@ -33,14 +33,7 @@ function AgendaContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({ title: '', startTime: '', endTime: '', description: '' });
 
-  const schedule = [
-    { time: "08:00", title: "Deep Work: Coding", type: "focus", duration: "2h", aiOptimized: true },
-    { time: "10:30", title: "Daily Sync", type: "meeting", duration: "30m", icon: Video },
-    { time: "11:00", title: "Review PRs", type: "work", duration: "1h" },
-    { time: "12:00", title: "Almoço & Descanso", type: "break", duration: "1.5h" },
-    { time: "13:30", title: "Planejamento Estratégico", type: "planning", duration: "1.5h", icon: FileText, aiOptimized: true },
-    { time: "15:00", title: "Treino: O Despertar do Titã", type: "workout", duration: "1h" },
-  ];
+  const schedule: any[] = [];
   const login = useGoogleLogin({
     onSuccess: (tokenResponse) => {
       setAccessToken(tokenResponse.access_token);

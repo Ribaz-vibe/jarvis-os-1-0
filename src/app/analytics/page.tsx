@@ -33,27 +33,28 @@ export default function AnalyticsPage() {
 
   // Basic simulation of history based on current total XP 
   // (In a full app, this would query an xp_history table)
-  const base = Math.max(0, xp - 300);
   const completedHabitsToday = useUserStore.getState().habits.filter(h => h.completedToday).length;
 
-  const weeklyData = [
-    { name: 'Seg', xp: base + 50, habits: 3 },
-    { name: 'Ter', xp: base + 100, habits: 5 },
-    { name: 'Qua', xp: base + 150, habits: 4 },
-    { name: 'Qui', xp: base + 200, habits: 6 },
-    { name: 'Sex', xp: base + 220, habits: 3 },
-    { name: 'Sáb', xp: base + 280, habits: 7 },
+  const weeklyData = xp > 0 ? [
+    { name: 'Seg', xp: 0, habits: 0 },
+    { name: 'Ter', xp: 0, habits: 0 },
+    { name: 'Qua', xp: 0, habits: 0 },
+    { name: 'Qui', xp: 0, habits: 0 },
+    { name: 'Sex', xp: 0, habits: 0 },
+    { name: 'Sáb', xp: 0, habits: 0 },
     { name: 'Hoje', xp: xp, habits: completedHabitsToday },
+  ] : [
+    { name: 'Hoje', xp: 0, habits: 0 },
   ];
 
-  const radarData = [
-    { subject: 'Força', A: stats.strength, fullMark: 20 },
-    { subject: 'Disciplina', A: stats.discipline, fullMark: 20 },
-    { subject: 'Consistência', A: stats.consistency, fullMark: 20 },
-    { subject: 'Foco', A: stats.focus, fullMark: 20 },
-    { subject: 'Recuperação', A: stats.recovery, fullMark: 20 },
-    { subject: 'Cardio', A: stats.cardio, fullMark: 20 },
-  ];
+  const radarData = stats.strength > 0 || stats.discipline > 0 ? [
+    { subject: 'Força', A: stats.strength, fullMark: 100 },
+    { subject: 'Disciplina', A: stats.discipline, fullMark: 100 },
+    { subject: 'Consistência', A: stats.consistency, fullMark: 100 },
+    { subject: 'Foco', A: stats.focus, fullMark: 100 },
+    { subject: 'Recuperação', A: stats.recovery, fullMark: 100 },
+    { subject: 'Cardio', A: stats.cardio, fullMark: 100 },
+  ] : [];
 
   return (
     <div className="space-y-8 pb-20">

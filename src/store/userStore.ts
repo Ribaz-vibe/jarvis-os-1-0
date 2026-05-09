@@ -93,76 +93,31 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   setUserId: (id: string) => set({ userId: id }),
 
-  initialize: async (uid?: string) => {
+initialize: async (uid?: string) => {
     set({ isLoading: true });
     try {
-      const currentUserId = uid || get().userId;
-      if (uid) set({ userId: uid });
-
-      // 1. Fetch User Base Data
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', currentUserId)
-        .single();
-
-      if (user) {
-        set({
-          name: user.name || 'Comandante',
-          level: user.level,
-          xp: user.xp,
-          maxXp: user.max_xp,
-          streak: user.streak,
-          stats: user.stats,
-          config: user.config,
-        });
-      } else {
-        // Create new user if not exists
-        await supabase.from('users').insert([{
-          id: currentUserId,
-          name: 'Comandante',
-          level: 1,
-          xp: 0,
-          max_xp: 1000,
-          streak: 0,
-          stats: get().stats,
-          config: get().config
-        }]);
-        // State is already at default level 1, 0 xp.
-      }
-
-      const { data: habits } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('user_id', currentUserId);
-      
-      if (habits) {
-        set({ habits: habits.map(h => ({
-          id: h.id,
-          title: h.title,
-          category: h.category as HabitCategory,
-          xpReward: h.xp_reward,
-          completedToday: h.completed_today,
-          streak: h.streak
-        }))});
-      }
-
-      const { data: workouts } = await supabase
-        .from('workouts')
-        .select('*')
-        .eq('user_id', currentUserId);
-      
-      if (workouts) {
-        set({ workoutLogs: workouts.map(w => ({
-          id: w.id,
-          questId: w.quest_id,
-          date: w.created_at,
-          series: w.series,
-          reps: w.reps,
-          weight: w.weight
-        }))});
-      }
-
+      // Sempre começar zerado - não carregar dados do banco
+      set({
+        name: '',
+        level: 0,
+        xp: 0,
+        maxXp: 0,
+        streak: 0,
+        stats: {
+          strength: 0,
+          discipline: 0,
+          consistency: 0,
+          recovery: 0,
+          focus: 0,
+          cardio: 0,
+        },
+        habits: [],
+        workoutLogs: [],
+        config: {
+          geminiApiKey: '',
+          googleClientId: '',
+        },
+      });
     } catch (error) {
       console.error('Initialization error:', error);
     } finally {

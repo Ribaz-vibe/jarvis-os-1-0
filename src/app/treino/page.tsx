@@ -58,44 +58,7 @@ export default function TreinoPage() {
     }));
   };
 
-  const quests = [
-    {
-      id: 1,
-      title: "O Despertar do Titã",
-      type: "Treino de Força (Peito/Tríceps)",
-      difficulty: "Avançado",
-      xp: 150,
-      duration: "60 min",
-      status: "available",
-      image: "bg-gradient-to-br from-red-500/20 to-orange-500/5",
-      color: "text-red-500",
-      border: "border-red-500/30"
-    },
-    {
-      id: 2,
-      title: "Resistência Sombria",
-      type: "Cardio HITT",
-      difficulty: "Intermediário",
-      xp: 80,
-      duration: "30 min",
-      status: "completed",
-      image: "bg-gradient-to-br from-cyan-500/20 to-blue-500/5",
-      color: "text-cyan-500",
-      border: "border-cyan-500/30"
-    },
-    {
-      id: 3,
-      title: "Flexibilidade Élfica",
-      type: "Mobilidade e Yoga",
-      difficulty: "Iniciante",
-      xp: 50,
-      duration: "20 min",
-      status: "locked",
-      image: "bg-gradient-to-br from-emerald-500/20 to-green-500/5",
-      color: "text-emerald-500",
-      border: "border-emerald-500/30"
-    }
-  ];
+  const quests: any[] = [];
 
   return (
     <div className="space-y-8 pb-20">
@@ -153,11 +116,11 @@ export default function TreinoPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+<div className="space-y-4">
                 {[
-                  { label: "Força Bruta", val: stats.strength, max: 20, color: "bg-red-500" },
-                  { label: "Cardio", val: stats.cardio, max: 20, color: "bg-cyan-500" },
-                  { label: "Recuperação", val: stats.recovery, max: 20, color: "bg-green-500" },
+                  { label: "Força Bruta", val: stats.strength, max: 100, color: "bg-red-500" },
+                  { label: "Cardio", val: stats.cardio, max: 100, color: "bg-cyan-500" },
+                  { label: "Recuperação", val: stats.recovery, max: 100, color: "bg-green-500" },
                 ].map(stat => (
                   <div key={stat.label}>
                     <div className="flex justify-between text-sm mb-1 font-bold">
@@ -167,7 +130,7 @@ export default function TreinoPage() {
                     <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${(stat.val / stat.max) * 100}%` }}
+                        animate={{ width: `${stat.val > 0 ? (stat.val / stat.max) * 100 : 0}%` }}
                         className={`h-full ${stat.color}`}
                       />
                     </div>
@@ -179,12 +142,12 @@ export default function TreinoPage() {
 
           <DashboardCard title="Impacto na Semana" className="bg-gradient-to-b from-primary/10 to-transparent border-primary/20">
              <div className="flex items-center gap-4">
-               <TrendingUp size={32} className="text-primary" />
-               <div>
-                 <div className="text-2xl font-black neon-text-purple">+1.240 XP</div>
-                 <div className="text-sm text-slate-400 font-bold uppercase tracking-widest">Ganho Físico</div>
-               </div>
-             </div>
+                <TrendingUp size={32} className="text-primary" />
+                <div>
+                  <div className="text-2xl font-black neon-text-purple">+0 XP</div>
+                  <div className="text-sm text-slate-400 font-bold uppercase tracking-widest">Ganho Físico</div>
+                </div>
+              </div>
           </DashboardCard>
         </div>
 
