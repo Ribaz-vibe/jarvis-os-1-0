@@ -272,7 +272,8 @@ export default function HabitosPage() {
         >
           Todos ({habits.length})
         </button>
-        {(Object.keys(defaultCategories) as HabitCategory[]).map(cat => {
+        {/* Default Categories */}
+        {(Object.keys(defaultCategories) as string[]).map(cat => {
           const count = habits.filter(h => h.category === cat).length;
           const config = defaultCategories[cat];
           const Icon = config.icon;
@@ -290,14 +291,45 @@ export default function HabitosPage() {
             </button>
           );
         })}
+        {/* Custom Categories */}
+        {customCategories.map(cat => {
+          const count = habits.filter(h => h.category === cat.id).length;
+          const IconComp = getIconComponent(cat.icon);
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setFilter(cat.id)}
+              className={cn(
+                "px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all border",
+                filter === cat.id ? "bg-white/10" : "bg-white/5 text-slate-400 hover:bg-white/10"
+              )}
+              style={{ borderColor: filter === cat.id ? cat.color : 'transparent' }}
+            >
+              <IconComp size={16} style={{ color: filter === cat.id ? cat.color : undefined }} />
+              {cat.name} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {/* Habits List */}
       <div className="space-y-4">
         <AnimatePresence mode="popLayout">
           {filteredHabits.map((habit) => {
-            const config = defaultCategories[habit.category as HabitCategory] || defaultCategories.health;
-            const Icon = config.icon;
+            // Obter config da categoria (default ou customizada)
+            let config = defaultCategories[habit.category as string];
+            let Icon = config?.icon || Heart;
+            let colorClass = config?.color || 'text-slate-400';
+            let bgClass = config?.bg || 'bg-slate-500/10 border-slate-500/20';
+            
+            // Verificar se é categoria customizada
+            const customCat = customCategories.find(c => c.id === habit.category);
+            if (customCat) {
+              const IconComp = getIconComponent(customCat.icon);
+              Icon = IconComp;
+              colorClass = '';
+              bgClass = '';
+            }
             
             return (
               <motion.div
@@ -318,9 +350,14 @@ export default function HabitosPage() {
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "w-12 h-12 rounded-xl flex items-center justify-center border-2 transition-all",
-                      habit.completedToday ? "bg-primary border-primary" : config.bg + " border-current"
-                    )}>
-                      {habit.completedToday ? <Check size={24} /> : <Icon size={24} className={config.color} />}
+                      habit.completedToday 
+                        ? "bg-primary border-primary" 
+                        : customCategories.find(c => c.id === habit.category)
+                          ? "border-2"
+                          : config.bg + " border-current"
+                    )}
+                    style={customCategories.find(c => c.id === habit.category) ? { borderColor: customCategories.find(c => c.id === habit.category)?.color } : undefined}>
+                      {habit.completedToday ? <Check size={24} /> : <Icon size={24} className={customCategories.find(c => c.id === habit.category) ? "" : config.color} style={customCategories.find(c => c.id === habit.category) ? { color: customCategories.find(c => c.id === habit.category)?.color } : undefined} />}
                     </div>
                     
                     <div>
@@ -332,7 +369,7 @@ export default function HabitosPage() {
                       </h3>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          {config.label}
+                          {customCategories.find(c => c.id === habit.category)?.name || config.label}
                         </span>
                         <span className="w-1 h-1 rounded-full bg-slate-700" />
                         <span className="text-xs font-bold text-primary flex items-center gap-1">
@@ -415,12 +452,21 @@ export default function HabitosPage() {
                   <label className="text-sm font-bold text-slate-400">Categoria</label>
                   <select 
                     value={newHabit.category}
-                    onChange={(e) => setNewHabit({...newHabit, category: e.target.value as HabitCategory})}
+                    onChange={(e) => setNewHabit({...newHabit, category: e.target.value})}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 appearance-none"
                   >
-                    {(Object.keys(defaultCategories) as HabitCategory[]).map(cat => (
-                      <option key={cat} value={cat}>{defaultCategories[cat].label}</option>
-                    ))}
+                    <optgroup label="Padrão">
+                      {(Object.keys(defaultCategories) as string[]).map(cat => (
+                        <option key={cat} value={cat}>{defaultCategories[cat].label}</option>
+                      ))}
+                    </optgroup>
+                    {customCategories.length > 0 && (
+                      <optgroup label="Personalizadas">
+                        {customCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
 
@@ -483,9 +529,18 @@ export default function HabitosPage() {
                     onChange={(e) => setEditingHabit({...editingHabit, category: e.target.value})}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 appearance-none"
                   >
-                    {(Object.keys(defaultCategories) as HabitCategory[]).map(cat => (
-                      <option key={cat} value={cat}>{defaultCategories[cat].label}</option>
-                    ))}
+                    <optgroup label="Padrão">
+                      {(Object.keys(defaultCategories) as string[]).map(cat => (
+                        <option key={cat} value={cat}>{defaultCategories[cat].label}</option>
+                      ))}
+                    </optgroup>
+                    {customCategories.length > 0 && (
+                      <optgroup label="Personalizadas">
+                        {customCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
 
