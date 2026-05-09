@@ -28,7 +28,7 @@ export default function TreinoPage() {
   const [showManualModal, setShowManualModal] = useState(false);
   
   // Multiple exercises state
-  const [exercises, setExercises] = useState([{ name: 'Exercício 1', series: 3, reps: 10, weight: 0 }]);
+  const [exercises, setExercises] = useState<any[]>([]);
   
   // Manual quest form state
   const [manualForm, setManualForm] = useState({

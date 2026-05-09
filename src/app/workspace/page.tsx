@@ -14,12 +14,7 @@ import {
 } from 'lucide-react';
 
 export default function WorkspacePage() {
-  const projects = [
-    { name: "Jarvis OS", status: "Em Desenvolvimento", type: "Next.js", icon: Terminal, color: "text-purple-500", progress: 65 },
-    { name: "Ponto da Barbearia", status: "Produção", type: "Landing Page", icon: Layout, color: "text-orange-500", progress: 100 },
-    { name: "Hermann Tattoo", status: "Revisão", type: "Landing Page", icon: Layout, color: "text-red-500", progress: 90 },
-    { name: "API de Vendas", status: "Planejamento", type: "Node.js", icon: Database, color: "text-green-500", progress: 10 },
-  ];
+  const projects: any[] = [];
 
   return (
     <div className="space-y-8 pb-20">

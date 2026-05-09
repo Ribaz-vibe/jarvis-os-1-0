@@ -75,17 +75,6 @@ export const Sidebar = () => {
           <Settings size={22} className="group-hover:rotate-90 transition-transform" />
           <span className="hidden md:block font-medium">Configurações</span>
         </Link>
-        <button
-          onClick={() => {
-            localStorage.removeItem('jarvis_guest_mode');
-            supabase.auth.signOut();
-            window.location.href = '/login';
-          }}
-          className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all group"
-        >
-          <LogOut size={22} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="hidden md:block font-medium">Sair</span>
-        </button>
       </div>
     </aside>
   );
