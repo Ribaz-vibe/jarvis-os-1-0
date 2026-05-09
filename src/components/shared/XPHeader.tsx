@@ -7,42 +7,53 @@ import { Trophy, Flame, Bell } from 'lucide-react';
 
 export const XPHeader = () => {
   const { level, xp, maxXp, streak, name } = useUserStore();
-  const progress = (xp / maxXp) * 100;
+  const progress = maxXp > 0 ? (xp / maxXp) * 100 : 0;
+  const displayName = name || 'Comandante';
+  const displayLevel = level > 0 ? `Level ${level}` : 'Iniciante';
 
   return (
     <header className="h-20 glass-card border-x-0 border-t-0 fixed top-0 right-0 left-20 md:left-64 z-40 px-8 flex items-center justify-between">
       <div className="flex flex-col">
         <span className="text-xs text-slate-400 font-medium tracking-[0.2em] uppercase">Setor de Comando</span>
-        <h1 className="text-xl font-bold tracking-tight">Bem-vindo, {name}</h1>
+        <h1 className="text-xl font-bold tracking-tight">Bem-vindo, {displayName}</h1>
       </div>
 
       <div className="flex items-center gap-8">
-        {/* Streak */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
-          <Flame size={18} className="text-orange-500 fill-orange-500" />
-          <span className="font-bold text-orange-500">{streak}</span>
-        </div>
+        {/* Streak - only show if > 0 */}
+        {streak > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+            <Flame size={18} className="text-orange-500 fill-orange-500" />
+            <span className="font-bold text-orange-500">{streak}</span>
+          </div>
+        )}
 
-        {/* XP Bar Container */}
-        <div className="hidden lg:flex items-center gap-4 w-96">
-          <div className="flex flex-col flex-1 gap-1.5">
-            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-              <span className="text-primary neon-text-purple">Level {level}</span>
-              <span className="text-slate-400">{xp} / {maxXp} XP</span>
+        {/* XP Bar Container - only show if has level */}
+        {level > 0 ? (
+          <div className="hidden lg:flex items-center gap-4 w-96">
+            <div className="flex flex-col flex-1 gap-1.5">
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+                <span className="text-primary neon-text-purple">{displayLevel}</span>
+                <span className="text-slate-400">{xp} / {maxXp} XP</span>
+              </div>
+              <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                <motion.div 
+                  className="h-full bg-gradient-to-r from-primary to-accent shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                />
+              </div>
             </div>
-            <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden border border-white/5">
-              <motion.div 
-                className="h-full bg-gradient-to-r from-primary to-accent shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-              />
+            <div className="w-10 h-10 rounded-full glass-card flex items-center justify-center border-primary/30">
+              <Trophy size={18} className="text-primary" />
             </div>
           </div>
-          <div className="w-10 h-10 rounded-full glass-card flex items-center justify-center border-primary/30">
-            <Trophy size={18} className="text-primary" />
+        ) : (
+          <div className="hidden lg:flex items-center gap-2 text-slate-500 text-sm">
+            <Trophy size={16} />
+            <span>Sem progressão ainda</span>
           </div>
-        </div>
+        )}
 
         <div className="flex items-center gap-4 border-l border-white/10 pl-6">
           <button className="p-2 text-slate-400 hover:text-white transition-colors relative">

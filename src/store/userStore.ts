@@ -69,18 +69,18 @@ interface UserState {
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
-  name: 'Comandante',
-  level: 1,
+  name: '',
+  level: 0,
   xp: 0,
-  maxXp: 1000,
+  maxXp: 0,
   streak: 0,
   stats: {
-    strength: 10,
-    discipline: 10,
-    consistency: 10,
-    recovery: 10,
-    focus: 10,
-    cardio: 10,
+    strength: 0,
+    discipline: 0,
+    consistency: 0,
+    recovery: 0,
+    focus: 0,
+    cardio: 0,
   },
   config: {
     geminiApiKey: '',
